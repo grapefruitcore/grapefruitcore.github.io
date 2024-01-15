@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+ <!-- <title>Bare - Start Bootstrap Template</title> -->
+
+  <!-- Bootstrap core CSS -->
+  <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.8.2/css/lightbox.min.css">
+  <!--CSS-->
+  <link href="main.css" rel="stylesheet">
+  <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css?family=Inconsolata">
+
+
+</head>
+
+<body>
+  <!-- Page Content -->
+<div class="container">
+	<div class="py-2">
+		<div class="row">
+			<div class="d-md col-md-2 col-lg-4 navigat">
+				<h1><img src="img/scroll.gif" style="width:100%;"></img>
+					<div class="centered">
+						<i class="hlight">Yu An Chen</i>
+						<br><p class="lead mb-5">647-704-5368 
+						<a href="mailto:yhedgeb@gmail.com">yhedgeb@gmail.com</a>
+						 University of Waterloo</p>
+					</div>
+				<ol>
+					<li><button id="0" onclick="showHide(this.id)">Hello</button></li>
+					<li><button id="1" onclick="showHide(this.id)">My projects</button></li>
+					
+					<li><button id="2" onclick="showHide(this.id)">I've worked at:</button></li>
+                        <p></br><i class="hlight">Deloitte</i> - Climate Change Risk Analyst
+                        <p></br><i class="hlight">Geotab</i> - Sustainability & EV Infrastructure Solutions Engineering
+                        <p></br><i class="hlight">Toyota Motor Manufacturing Canada</i> - Engineering Analyst
+						<p></br><i class="hlight">Amphenol Canada</i> - Quality Assurance Lab. Engineering Assistant
+						<p></br><i class="hlight">AVRIL</i> - University of Waterloo - Automotive Engineering Assistant
+						</br></br><i class="hlight">Team Waterloop</i> - University of Waterloo - Marketing Lead
+						</br></br><i class="hlight">UWAFT</i> - University of Waterloo - Electrical Team Member
+						</br></br></p>
+						
+					<li>I'm currently:</li>
+						<p><br/>Based in <b>Mississauga</b>, Ontario
+						</br></br>Looking for full-time work starting May 2024</p>
+				</h1><ol>
+			</div>
+			<div class="col-md-8 col-lg-8 scr">
+            <p style="font-size:11px;text-align: center;">(Click headings to show/hide each section)</p>
+				<div class="mx-0 py-5 px-0">
+					<div id="myDIV" class="section">
+						<h2>About Me</h2>
+						<p>
+						 I study Chemical Engineering at the University of Waterloo. I work in automotive solutions and sustainability. I do marketing and graphic design on the side. I'm in my 3B term and I graduate in <i class="hlight">April 2024</i>. In my moments of time free from engineering school I enjoy cooking and listening to melodramatic electronic music.
+						 </p>
+						 <!---</br><h2>Blog posts</h2>
+                        <a href="http://old.yuanchen.ml/blog/2020-09-20.html">Dorm Room Apple Cider</a>
+                         </br><a href="http://old.yuanchen.ml/blog/2019-12-23.html">My (non-algorithmically-defined) Albums of the Decade</a>
+                         </br>(These posts are located at the old version of my website. I'll move them over soon!)--->
+						</br></br> Want to talk? Find me on <a href="https://www.linkedin.com/in/yu-an-chen-35b300194/">Linkedin</a>
+						 </p>
+						 </br>
+					</div>
+					<div id="myDIV2" class="section">
+						<h2>Projects</h2>
+						<p>
+						The projects I work on that aren't related to a place I've worked for.</br>
+						<p></br><h3>Index:
+						<ol>
+                            <li><a href="http://walk.yuanchen.ml/">WalktoWork (webapp)</a></li>
+							<li><button id="3" onclick="showHide(this.id)"><a href="#myDIV4">Pressure sensing chamber</a></button></li>
+							<li><button id="4" onclick="showHide(this.id)"><a href="#myDIV5">Hasty (webapp)</a></button></li>
+							<li><button id="5" onclick="showHide(this.id)"><a href="#myDIV6">Assorted code snippets</a></button></li>
+						</ol></h3></p>
+						
+						<hr/>
+						<div id="myDIV4">
+							<h2>Pressure sensing chamber</h2>
+							<div class="photo-gallery">
+								<div class="container">
+									<div class="row photos">
+										<div class="col-sm-18 col-md-14 col-lg-12 item"><a href="http://yuanchen.ml/img/pdevice.jpg" data-lightbox="photos"><img class="img-fluid" src="http://yuanchen.ml/img/pdevice.jpg"></a></div>
+										<div class="col-sm-9 col-md-7 col-lg-6 item"><a href="http://yuanchen.ml/img/pcad.jpg" data-lightbox="photos"><img class="img-fluid" src="http://yuanchen.ml/img/pcad.jpg"></a></div>
+										<div class="col-sm-9 col-md-7 col-lg-6 item"><a href="http://yuanchen.ml/img/pschematic.jpg" data-lightbox="photos"><img class="img-fluid" src="http://yuanchen.ml/img/pschematic.jpg"></a></div>
+										This pressure sensing chamber is an easy to use device for measuring gas pressure. It is a low-cost solution for laboratory or analysis near atmospheric conditions. Features include standalone function mode, and detailed data collection mode available with USB connection to PC. 
+
+									<h3>See the Code</h3>
+									<div class="code">
+									<pre class="prettyprint">#include < math.h >
+int ledPin = 2;
+int ledPin1 = 3;
+int ledPin2 = 4;
+int ledPin3 = 5;
+int ledPin4 = 6;
+int ledPin5 = 7;
+int ledPin6 = 8;
+int ledPin7 = 9;
+int ledPin8 = 10;
+//int ledPin9 = 13;
+int ledPins [10] = {ledPin, ledPin1, ledPin2, ledPin3, ledPin4, ledPin5, ledPin6, ledPin7, ledPin8};
+int buttonPin = 12;
+void setup() {
+  // put your setup code here, to run once:
+Serial.begin(9600);
+pinMode(11, OUTPUT);
+digitalWrite(11, HIGH);
+pinMode(ledPin, OUTPUT);
+pinMode(ledPin2, OUTPUT);
+pinMode(ledPin3, OUTPUT);
+pinMode(ledPin4, OUTPUT);
+pinMode(ledPin1, OUTPUT);
+pinMode(ledPin5, OUTPUT);
+pinMode(ledPin6, OUTPUT);
+pinMode(ledPin7, OUTPUT);
+pinMode(ledPin8, OUTPUT);
+//pinMode(ledPin9, OUTPUT);
+pinMode(buttonPin, INPUT);
+}
+void loop() {
+  // put your main code here, to run repeatedly:
+float r_0 = 467.77;
+float T_0 = 20;
+  //these are measured from the temperature in my room
+float meas_pin = analogRead (A0); 
+float meas_pin2 = analogRead(A1); 
+float meas_pin3 = analogRead(A2); 
+  //computing resistance
+float v_1 = (meas_pin * (5.0/1024.0)) - (meas_pin2 * (5.0/1024.0)); 
+float v_2 = (meas_pin2 * (5.0/1024.0)) - (meas_pin3 * (5.0/1024.0)); 
+float r_u = (v_1 * 1000000)/(v_2); 
+  //temperature (not being used)
+float T = (((r_u/r_0)-1)/0.0395) +T_0; 
+  //taking the average of 9 readings
+float Values [10]; 
+int i; 
+for (i = 0; i < 9; i = i + 1) {
+Values[i] = r_u; 
+delay (50);
+}
+  //pause button
+if ((digitalRead(buttonPin)) == HIGH) {
+  Serial.println("Paused.");
+  delay (5000);
+//  int p = 1;
+//  while(p = 1) {
+//    delay (100);
+//    if ((digitalRead(buttonPin)) == HIGH) {
+//      int p = 1;
+//    }
+//    else {
+//      int p = 0;
+//    }
+//  }
+}
+  //outputs
+float r_avg = (Values [1] +Values [2] +Values [3] +Values [4] +Values [5] +Values [6] +Values [7] +Values [8] +Values [9]);
+float p_avg = -0.113*log(r_avg/1000)+2.1431;
+//Serial.println (r_avg/1000);
+Serial.println (p_avg);
+  // indicator lights
+float indicator = (p_avg + 0.1);
+int j; 
+float k = 1;
+for (j = 0; j < (sizeof(ledPins) / sizeof(int)); j = j + 1) {
+digitalWrite(ledPins[j], LOW);
+}
+for (j = 0; j < (sizeof(ledPins) / sizeof(int)); j = j + 1) {
+  if ( indicator >= k ) {
+	digitalWrite(ledPins[j], HIGH);
+  }
+  k = k + 0.1;
+}
+k = 1;
+
+	}								</pre></div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<div id="myDIV5">
+							<h2>Hasty web app</h2>
+							<div class="row photos">
+								<div class="col-sm-18 col-md-14 col-lg-12 item"><a href="img/hastyss.png" data-lightbox="photos"><img class="img-fluid" src="img/hastyss.png"></a></div>
+							</div>
+							</br>Created for StarterHacks 2020. <a href="http://hasty.yuanchen.ml">Explore the project</a></br>
+						</div>
+						
+						<div id="myDIV6">
+							<h2>Code snippets</h2>
+							Code that's unrelated to any other projects.
+							</br></br><h3>Python</h3>
+							Class containing two methods that impute missing values in two data files called "training" and "test" with mean of each column.
+							<div class="code">
+							<pre class="prettyprint">
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Dec 10 13:16:02 2020
+
+@author: Yu An
+"""
+import pandas as pd
+
+df = pd.read_csv('training.csv', header=None)
+df2 = pd.read_csv('test.csv', header=None)
+
+class mean_imputer:
+    
+    def Fit_transform(self,training_data):
+        column = list(training_data) 
+        for i in column:
+            sum_data = 0
+            count = 0
+            #Keeps track of number of present values in column
+            for j in df[i]:
+                if str.isnumeric(str(j)) == True:
+                    sum_data = sum_data + int(j)
+                    count+=1
+                    mean = sum_data/count
+                    #Calculates the mean of the values in the column
+                else:
+                    pass
+            training_data[i] = training_data[i].fillna(mean)
+            #Replaces missing values with calculated mean
+        return(training_data)
+    
+    def Transform(self,test_data):
+        column = list(test_data) 
+        for i in column:
+            sum_data = 0
+            count = 0
+            #Keeps track of number of present values in column
+            for j in df[i]:
+                if str.isnumeric(str(j)) == True:
+                    sum_data = sum_data + int(j)
+                    count+=1
+                    mean = sum_data/count
+                    #Calculates the mean of the values in the column
+                else:
+                    pass
+            test_data[i] = test_data[i].fillna(mean)
+            #Replaces missing values with calculated mean
+        return(test_data)
+    
+#Sample call
+#test = mean_imputer()
+#print(test.Transform(df))
+							</pre></div>
+							</br>Function that solves the Rachford-rice equation using the Newton-Raphson method.
+							<div class="code">
+							<pre class="prettyprint">
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Dec 21 21:36:59 2020
+
+@author: yhedg
+"""
+def rachfordRice(z1,z2,z3,k1,k2,k3,initial,threshold):
+    """
+    Parameters
+    ----------
+    zi : Int or float
+        Mole fraction of i in the feed.
+    ki : Int or float
+        Distribution coefficient of i, can be calculated by Pi(sat)/P
+    initial : Int or float
+        Initial guess for psi
+    threshold : Int or float
+        Accuracy threshold
+
+    Returns
+    -------
+    psi - ratio of D to F
+
+    """
+    psi = initial #initial guess for ratio of D to F
+    #Rachford-rice equation
+    f = ((k1-1)*z1)/(1+psi*(k1-1)) + ((k2-1)*z2)/(1+psi*(k2-1)) + ((k3-1)*z3)/(1+psi*(k3-1))
+    #Derivative
+    fPrime =-( ((((k1-1)**2)*z1)/(1+psi*(k1-1)**2)) + ((((k2-1)**2)*z2)/(1+psi*(k2-1)**2)) + ((((k3-1)**2)*z3)/(1+psi*(k3-1)**2)) )
+    psiNext = psi-(f/fPrime)
+    #Iterate until accurate within threshold
+    while (psiNext-psi) > threshold:
+        psi = psiNext
+        f = ((k1-1)*z1)/(1+psi*(k1-1)) + ((k2-1)*z2)/(1+psi*(k2-1)) + ((k3-1)*z3)/(1+psi*(k3-1))
+        fPrime =-( ((((k1-1)**2)*z1)/(1+psi*(k1-1)**2)) + ((((k2-1)**2)*z2)/(1+psi*(k2-1)**2)) + ((((k3-1)**2)*z3)/(1+psi*(k3-1)**2)) )
+        psiNext = psi-(f/fPrime)
+    else:
+        return psi
+    
+"""
+Example call
+z1=0.42 z2=0.38 z3=0.20
+k1=1.7795 k2=0.8895 k3=0.4575
+Initial guess of 0.5
+Threshold of 0.00001
+"""
+print(rachfordRice(0.42,0.38,0.20,1.7795,0.8895,0.4575,0.5,0.00001))
+							</pre></div>
+							</br></br><h3>MATLAB</h3>
+							Finding the line integral along a curve
+							<div class="code">
+							<pre class="prettyprint">
+    syms t
+    
+    %To call the function, first parameterize the curve:
+    x=t; y=5;
+    
+    %Then define the vector field:
+    F = [7*x^2+5*y];
+    
+    %Then call the function:
+    LI = lineInt(x,y,F)
+    
+        function LI = lineInt(x,y,F)
+        syms t
+        %Dot product F*dr:
+        D = F*[diff(x,t); diff(y,t)];
+        disp(D)
+
+        %Integral of line respect of t (dt):
+        I = int(D,t,0,5);
+
+        LI = I
+    end
+        
+							</pre></div>
+						</div>
+						</p>
+						</br>
+					</div>
+					<div id="myDIV3" class="section">
+						<h2>My time at: Amphenol (Jan-Apr 2021)</h2>
+						<img src="https://www.amphenolcanada.com/images/ACC-facility.jpg"></img>
+						<p></br>
+						  At Amphenol, my main projects were qualification tests for various high-speed electrical connectors. I assembled parts according to drawings and specifications, which involved soldering and the usage of hand tools.
+						 </p>
+						 <br/><h2>My time at: AVRIL (May-Aug 2020)</h2>
+						<img src="https://uwaterloo.ca/autonomous-vehicle-research-intelligence-lab/sites/ca.autonomous-vehicle-research-intelligence-lab/files/styles/banner-wide/public/uploads/images/banners/banner_avril.jpg?itok=GfgxJT-z"></img>
+						<p></br>
+						  At the Autonomous Vehicle Research and Intelligence laboratory at the University of Waterloo, I worked in a hybrid <b>engineering and business/marketing/communications</b> role.</br>
+						  <br/><img src="img/avrilss.png"></img></br>
+						  </br>I helped maintain lab communications and relations, keeping the website up to date and using <i class="hlight">Salesforce</i> to track contacts.
+						 </p>
+						</br>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+  <!-- Bootstrap core JavaScript -->
+  <script src="vendor/jquery/jquery.slim.min.js"></script>
+  <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.8.2/js/lightbox.min.js"></script>
+  <!-- Prettify -->
+  <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js?skin=desert"></script>
+  <!-- Javascript-->
+  <script src="main.js"></script>
+
+</body>
+
+</html>
