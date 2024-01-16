@@ -8,6 +8,9 @@
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <style>
+		html {
+			height: 100%;
+		}
         body {
             font-family: 'Work Sans', sans-serif;
             margin: 0;
@@ -18,12 +21,14 @@
 
         .container {
             display: flex;
-            justify-content: space-between;
             padding: 20px;
+			justify-content: flex-start;
+			flex-wrap: wrap;
         }
 
         .column {
-            flex: 1;
+            flex: 2;
+			flex-shrink: 3
             margin: 2px;
             padding: 8px;
             box-sizing: border-box;
@@ -31,6 +36,9 @@
 
         .flexible-column {
             flex: 2;
+			flex-basis: 500px;
+			overflow-x: hidden;
+			overflow-y: auto;
         }
 
         h2 {
@@ -57,7 +65,33 @@
             height: auto;
             margin: 0 auto;
             display: block;
+			cursor: pointer;
         }
+		
+		.gallery-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .modal-img {
+			display: block;
+            cursor: pointer;
+			width: auto;
+            height: 100%;
+            max-height: 900px;
+			}
 
         .menu {
             list-style: none;
@@ -73,8 +107,56 @@
 
         .flexible-column div {
             display: none;
+		}
+			
+        .two-images-container {
+            display: flex !important;
+            justify-content: space-between;
+            flex-wrap: wrap;
+			margin: 20px;
+        }
+
+        .two-images-container img {
+            width: calc(50% - 10px);
+			padding: 5px;
         }
     </style>
+		<script>
+		var imageSources = ["img/name blur colour.png", "img/solar panel.png", "img/musqueam.png"];
+
+		for (var i = 0; i < imageSources.length; i++) {
+			var image = new Image();
+			image.src = imageSources[i];
+		}
+
+        document.addEventListener("DOMContentLoaded", function() {
+            var sections = document.querySelectorAll('.flexible-column div');
+            sections.forEach(function(section) {
+                section.style.display = 'none';
+            });
+        });
+
+        function toggleSection(sectionId) {
+            var section = document.getElementById(sectionId);
+            if (section.style.display === 'none' || section.style.display === '') {
+                section.style.display = 'block';
+            } else {
+                section.style.display = 'none';
+            }
+        }
+		
+		function openModal(imageSrc) {
+            var modal = document.getElementById('modal');
+            var modalImage = document.getElementById('modalImage');
+            modalImage.src = imageSrc;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            var modal = document.getElementById('modal');
+            modal.style.display = 'none';
+        }
+    </script>
 </head>
 <body>
 
@@ -82,7 +164,7 @@
         <div class="column">
             <p><img src="img/name blur colour.png"></img></p>
 			<br></br>
-			<p><img src="img/solar panel.png" style="width: 220px;"></img></p>
+			<p><img src="img/solar panel.png" style="width: 50%;"></img></p>
         </div>
 
         <div class="column">
@@ -90,6 +172,7 @@
             <ul class="menu">
                 <li class="menu-item" onclick="toggleSection('section1')">About</li>
                 <li class="menu-item" onclick="toggleSection('section2')">Projects</li>
+				<li class="menu-item" onclick="toggleSection('section3')">Portfolio</li>
             </ul>
 			<p>I am: </p>
 			<p>an engineering & climate analyst with a focus on EVs & charging infrastructure. </p>
@@ -114,26 +197,26 @@
 				<p><i>Final results pending...</i></p>
 				<p><img src="img/musqueam.png" style="width: 500px;"></img></p>
             </div>
+			<div id="section3">
+				<h2>Graphics for...</h2>
+				<p>Coursework</p>
+				<div class="two-images-container">
+					<img src="img/fine130 2a.png" alt="Coursework 1" onclick="openModal('img/fine130 2a.png')">
+					<img src="img/fine130 2b.png" alt="Coursework 2" onclick="openModal('img/fine130 2b.png')">
+					<img src="img/fine130 4a.jpg" alt="Coursework 3" onclick="openModal('img/fine130 4a.jpg')">
+					<img src="img/fine130 4b.jpg" alt="Coursework 4" onclick="openModal('img/fine130 4b.jpg')">
+				</div>
+            </div>
         </div>
     </div>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            var sections = document.querySelectorAll('.flexible-column div');
-            sections.forEach(function(section) {
-                section.style.display = 'none';
-            });
-        });
-
-        function toggleSection(sectionId) {
-            var section = document.getElementById(sectionId);
-            if (section.style.display === 'none' || section.style.display === '') {
-                section.style.display = 'block';
-            } else {
-                section.style.display = 'none';
-            }
-        }
-    </script>
+	
+    <div class="gallery-modal" id="modal">
+		<span onclick="closeModal()" class="close">
+			<div class="modal-content">
+				<img src="" alt="Modal Image" class="modal-img" id="modalImage">
+			</div>
+		</span>
+    </div>
 
 </body>
 </html>
