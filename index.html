@@ -108,12 +108,23 @@
         .flexible-column div {
             display: none;
 		}
+		
+		.one-image-container {
+            display: block !important;
+            flex-wrap: wrap;
+			left-margin: 20px;
+        }
+
+        .one-image-container img {
+            width: 100%;
+			padding: 5px;
+        }
 			
         .two-images-container {
             display: flex !important;
             justify-content: space-between;
             flex-wrap: wrap;
-			margin: 20px;
+			left-margin: 20px;
         }
 
         .two-images-container img {
@@ -137,12 +148,13 @@
         });
 
         function toggleSection(sectionId) {
-            var section = document.getElementById(sectionId);
-            if (section.style.display === 'none' || section.style.display === '') {
-                section.style.display = 'block';
-            } else {
+            var sections = document.querySelectorAll('.flexible-column div');
+            sections.forEach(function(section) {
                 section.style.display = 'none';
-            }
+            });
+
+            var section = document.getElementById(sectionId);
+            section.style.display = 'block';
         }
 		
 		function openModal(imageSrc) {
@@ -199,13 +211,21 @@
             </div>
 			<div id="section3">
 				<h2>Graphics for...</h2>
-				<p>Coursework</p>
+				<P>Chemical Engineering Student Society. Promotion of student events and social media posts.</p>
+				<p>Coursework. Engineering students got one creative elective: this is my work for FINE130.</p>
 				<div class="two-images-container">
 					<img src="img/fine130 2a.png" alt="Coursework 1" onclick="openModal('img/fine130 2a.png')">
 					<img src="img/fine130 2b.png" alt="Coursework 2" onclick="openModal('img/fine130 2b.png')">
 					<img src="img/fine130 4a.jpg" alt="Coursework 3" onclick="openModal('img/fine130 4a.jpg')">
 					<img src="img/fine130 4b.jpg" alt="Coursework 4" onclick="openModal('img/fine130 4b.jpg')">
+					<img src="img/fine130 5.jpg" alt="Coursework 5" onclick="openModal('img/fine130 5.jpg')">
+					<img src="img/fine130 6.jpg" alt="Coursework 6" onclick="openModal('img/fine130 6.jpg')">
 				</div>
+				<div class="one-image-container">
+					<img src="img/fine130 7.jpg" alt="Coursework 7" onclick="openModal('img/fine130 7.jpg')">
+				</div>
+				<p>Geotab (internal). Promotion of intern events.</p>
+				<p>
             </div>
         </div>
     </div>
