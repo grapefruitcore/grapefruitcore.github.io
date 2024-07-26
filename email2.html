@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            margin: auto;
+        }
+
+        .image-left, .image-right {
+            width: 50%;
+            margin: 10px;
+            position: relative;
+        }
+
+        .image-left {
+            float: left;
+            margin-right: 20px;
+        }
+
+        .image-right {
+            float: right;
+            margin-left: 20px;
+        }
+
+        .image-left img, .image-right img {
+            width: 100%;
+            height: auto;
+        }
+
+        .caption {
+            position: absolute;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            width: 100%;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .three-image-box {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            clear: both;
+        }
+
+        .three-image-box img {
+            width: 32%;
+            height: auto;
+        }
+
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        @media screen and (max-width: 600px) {
+            .image-left, .image-right {
+                float: none;
+                width: 100%;
+                margin: 10px 0;
+            }
+
+            .three-image-box {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .three-image-box img {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Newsletter Title</h1>
+        
+        <div class="image-left clearfix">
+            <img src="img/email1.jpg" alt="Left Image">
+            <div class="caption">Left Image Caption</div>
+        </div>
+
+        <p>Your content goes here. This is a paragraph to explain something related to the left image. The text will wrap around the image and fill the available space. This layout ensures that the content is visually appealing and easy to read. Additional text to demonstrate the wrapping effect with multiple lines. More text to ensure proper wrapping around the floating image. Even more text to show how it fills the remaining space.</p>
+
+        <div class="image-right clearfix">
+            <img src="img/email1.jpg" alt="Right Image">
+            <div class="caption">Right Image Caption</div>
+        </div>
+
+        <p>Your content goes here. This is a paragraph to explain something related to the right image. The text will wrap around the image and fill the available space. This layout ensures that the content is visually appealing and easy to read. Additional text to demonstrate the wrapping effect with multiple lines. More text to ensure proper wrapping around the floating image. Even more text to show how it fills the remaining space.</p>
+
+        <div class="three-image-box clearfix">
+            <img src="image1.jpg" alt="Image 1">
+            <img src="image2.jpg" alt="Image 2">
+            <img src="image3.jpg" alt="Image 3">
+        </div>
+
+        <p>Your content goes here. This is a paragraph to explain the three images above. The three-image box is displayed in a row and stacks vertically on smaller screens.</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YuAn's Music Reviews</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Bitter:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <style>
+        /* Reset default margin and padding */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: "Bitter", serif;
+			font-optical-sizing: auto;
+        }
+		
+		/* Container for the content and images */
+        .container {
+            display: flex;
+            align-items: center;
+        }
+
+        /* Fullscreen background image */
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('img/mockup.png');
+            background-size: cover;
+            background-position: top;
+            z-index: -1; /* Ensure it stays behind other elements */
+        }
+
+        /* Fixed position text box */
+        .content-box {
+            position: relative;
+			width: 53vw; /* % of the viewport width */
+            height: 61vh; /* % of the viewport height */
+            background-color: rgba(255, 255, 255, 0.8); /* Background colour */
+            padding: 20px;
+			margin-top: 17vh;
+            border-radius: 4px;
+			overflow-y: auto; /* Enable vertical scrolling */
+        }
+
+        /* Content within the box */
+        .content-box h1 {
+			margin: 0;
+            font-size: 24px;
+            text-align: center;
+			color: #0000cd;
+			font-weight: 900;
+			font-style: italic;
+        }
+
+        .content-box p {
+            margin: 0;
+            font-size: 16px;
+            text-align: left;
+        }
+		
+		.content-box sub {
+            margin: 0;
+			padding: 8px;
+            font-size: 12px;
+			font-style: italic;
+            text-align: center;
+        }
+		
+		.content-box h2 {
+			margin: 0;
+			padding: 8px;
+            font-size: 18px;
+            text-align: left;
+			color: #0000cd;
+			font-weight: 700;
+			font-style: italic;
+        }
+		
+		.content-box h3 {
+			margin: 0;
+			padding: 8px;
+            font-size: 16px;
+            text-align: left;
+			color: #0000cd;
+			font-weight: 500;
+			font-style: italic;
+        }
+		
+		.content-box a:link {
+            color: blue;
+        }
+		
+		.content-box a:visited {
+			color: blue;
+		}
+		
+		.content-box a:hover {
+			color: magenta;
+		}
+		
+		/* Basic scrollbar styling */
+		body {
+			scrollbar-width: thick; /* For Firefox */
+			scrollbar-color: #c1c1c1 #f1f1f1; /* For Firefox */
+		}
+
+		/* Webkit-based browsers (Chrome, Safari) */
+		::-webkit-scrollbar {
+			width: 16px; /* Width of the scrollbar */
+		}
+
+		::-webkit-scrollbar-track {
+			background: #f1f1f1; /* Background of the scrollbar track */
+			border-radius: 10px;
+		}
+
+		::-webkit-scrollbar-thumb {
+			background-color: #c1c1c1; /* Color of the scrollbar thumb */
+			border-radius: 10px;
+			border: 4px solid #f1f1f1; /* Creates padding around the thumb */
+		}
+
+		::-webkit-scrollbar-thumb:hover {
+			background-color: #a9a9a9; /* Color when hovering over the scrollbar thumb */
+		}
+
+		/* For IE and Edge */
+		body::-webkit-scrollbar {
+			-ms-overflow-style: scrollbar; /* For Edge */
+		}
+
+		body::-webkit-scrollbar-track {
+			background: #f1f1f1; /* Background of the scrollbar track */
+			border-radius: 10px;
+		}
+
+		body::-webkit-scrollbar-thumb {
+			background-color: #c1c1c1; /* Color of the scrollbar thumb */
+			border-radius: 10px;
+			border: 4px solid #f1f1f1; /* Creates padding around the thumb */
+		}
+
+		body::-webkit-scrollbar-thumb:hover {
+			background-color: #a9a9a9; /* Color when hovering over the scrollbar thumb */
+		}
+		
+		/* Columns for the rotating images */
+        .image-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 23.5vw;
+            height: 50vh;
+            padding: 40px 0 0 0;
+        }
+
+        .image-column img {
+            width: 100%;
+            height: auto;
+            transition: transform 0.5s ease-in-out;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="background"></div>
+	<div class="container">
+		<div class="image-column">
+            <img src="img/sideimage1.png" alt="Rotating Image 1">
+            <img src="img/sideimage2.png" alt="Rotating Image 2">
+        </div>
+		<div class="content-box" id="content-box">
+			<h1>Welcome to My Website</h1>
+			<sub><center>I <3 melodramatic electronic music and living in my head !!! <a href="https://www.last.fm/user/meloncube">My last.fm</a> / <a href="https://open.spotify.com/user/pineapplefish">My spotify</a></center></sub>
+			<p>Normal thoughts and opinions to have about music since 2011.</p>
+			
+			<h2>Index</h2>
+			<p><a href="#anchor-name">List</a></p>
+			<p><a href="#anchor-name">Summer</a></p>
+			<p><a href="#anchor-name">Spotify playlists</a></p>
+			<p><a href="#anchor-name">Link</a></p>
+			<p>Album Reviews</p>
+			<p><a href="#anchor-name">Link</a></p>
+			
+			<h2>The Best (My Favourite) Artists of All Time (How Long I Have Been Conscious) (2024)</h2>
+			<p><ol>
+				<li>Darcy Baylis</li>
+				<li>Skrillex</li>
+				<li>Ecco2k</li>
+				<li>Pendulum</li>
+				<li>Tigers Jaw</li>
+				<li>Bladee</li>
+			</ol></p>
+			
+			<h2>Songs of the Summer (2024)</h2>
+			<p><i>(copied unedited from my notes app diary)</i></p>
+			<h3>Sunset by Perfectworld</h3>
+			<p>You know what you thought nightclubs were like when you were in middle school? That's what this song sounds like. Indie Sleaze. I often find myself playing a character I made up when I was thirteen, at parties. It was way less lame in the world in my head back then. I had, like, robot fingers.</p>
+			<h3>Ionian Sea by Hysterical Love Project</h3>
+			<p>This sounds like being drowned in the Pacific ocean, turn up the bass on your headphones and close your eyes. Shout out Will Canning's Instagram story. I watched Saltburn and thought Jacob Elordi wasn't nearly hot enough to warrant all that. On the other hand, I'd do anything to swap places with Will Canning. God, I want to be 6'5" so bad.</p>
+			<h3>Stylin' by Club Angel</h3>
+			<p>So much fun. Darcy Baylis has great taste in friends who make music. Wish I had the cardio to learn to shuffle. This dude kinda looks like Austin Butler.</p>
+			<h3>Bonus: Neva Miss by Club Angel</h3>
+			<p>Woo!</p>
+			
+			<h2>My Spotify Playlists Described (2024)</h2>
+			<h3>yayyy summer</h3>
+			<p>The sun sets past 7pm. It's time to defrost your festival-season music taste.</p>
+			<h3>My Playlist #69</h3>
+			<p>Incredibly unemployed, but you can tell I have a job lined up. Selected favourites from recent releases such as All You Embrace by One Step Closer, Night Killaz vol 2. by Snow Strippers, and Hell or Highwater by nothing,nowhere.
+			<h3>giedi prime business park</h3>
+			<p>This is about Feyd-Rautha Harkonnen from Dune.</p>
+			<h3>beats to graduate engineering school to</h3>
+			<p>Self-explanatory.</p>
+			<h3>powerpoint night</h3>
+			<p>Companion playlist to a presentation I did on the history of Death Bells.</p>
+			
+			<h1>Full Album Reviews</h1>
+			<sub><center>I'm admittedly not a full albums enjoyer, nor a serious music reviewer, but some of them are special to me.</center></sub>
+			
+			
+			<h2>A House Breaking by Darcy Baylis (2022)</h2>
+			<p><i>This was the first Darcy Baylis release I listened to. From my music rankings spreadsheet I shared with my co-op lead at Geotab. I should write an updated one.</i></p>
+			<p>overall: 10/10 I love breakbeats I love sad autobiographical storytelling over electronic music I love Darcy Baylis</p>
+			<h3>track 1 amber alert</h3>
+			<p>beautiful vocoder soaked neoclassical vibe. if you listened to Worlds by Porter Robinson during your formative years this is very nostalgic. title track in a sense. 10/10, cried</p>
+			<h3>track 2 describing a pattern</h3>
+			<p>unique tone on the breaks thats very pleasing. not sure the what the right setting for this track is because it's a repetitive dancey track but not actually very danceable. heavy processing on the vocals. vocals are the high point of the song. the instrumentals are almost like the street noise behind the walk down an overcast city pavement that is this song, except the piano bit. "he's getting better at talking shit" 7/10</p>
+			<h3>track 3 the force won't kill me pt 2</h3>
+			<p>personal favourite on the album. spacey sparse but fulfilling. sounds like a closed-eye hallucination in sonic form or the good meaty part of a dream. gorgeous sound design obviously, more breaks on this track but I love breaks so thats a plus. rehashed vocals from Sloterjik Station off his last album but it works better on this track. I can't tell if "does it matter if the force won't kill me" is supposed to be positive or negative. the verse at the end is like a craving for something you've never tasted. 10/10</p>
+			<h3>track 4 love theme</h3>
+			<p>this is kind of like an interlude. sets the tone for the latter half of the album. transitions from lukewarm to heartbreakingly cold sterile more vocoder but haunting this time. 7/10</p>
+			<h3>track 5 privacy</h3>
+			<p>this one's fun! solid dancehall track, drake vibes, song of the summer etc etc. listen to this by itself if you've read the previous track reviews and are either confused or totally turned off this album. it's a happy cheery track if you don't understand english. catchy earworm and I saw a vid of this being performed live haha it's so cute 10/10</p>
+			<h3>track 6 icu vip</h3>
+			<p>I like the clever play on words in the title (VIP = variation in production/very important person). this one launches right into the autobiography of misery I think you understand by the time you get this far into the album. back with the breaks which I love. they grow in intensity as the song goes on this time, kind of pushing the track to the breaking point of tension which is never really relieved - like the fleeting moment of clarity/sobriety the lyrics capture. 7/10</p>
+			<h3>track 7 flower years/GHB</h3>
+			<p>had no idea people got high off GHB before this song. this is a piano-ey synth filled dragged-on conversation that's one of the emotionally heaviest on the album in my opinion; starkly honest, almost exhaustingly so. I keep thinking I don't like this song until I listen to it again. 8/10</p>
+			<h3>track 8 staggering</h3>
+			<p>good memories associated with this song for me so I'm biased but - refreshing pop punk nu metal type song. the guitars are so cathartic. crimson chaos is a perfect choice for the feature on this one and he has the heaviest australian accent I've heard on a singer. so much fun. its the kinda song you want to scream out a car window. love love love the whiney american type vocals darcy does on his verse they are perfect for this song. 10/10</p>
+			<h3></h3>
+			<p></p>
+		</div>
+		<div class="image-column">
+            <img src="img/sideimage2.png" alt="Rotating Image 1">
+            <img src="img/sideimage1.png" alt="Rotating Image 2">
+        </div>
+		
+	</div>
+	
+    <script>
+        const contentBox = document.getElementById('content-box');
+        const images = document.querySelectorAll('.image-column img');
+
+        contentBox.addEventListener('scroll', () => {
+            const scrollAmount = contentBox.scrollTop;
+            images.forEach((image, index) => {
+                const rotation = scrollAmount / 5; // Adjust rotation speed as needed
+                image.style.transform = `rotate(${rotation}deg)`;
+            });
+        });
+    </script>
+</body>
+</html>

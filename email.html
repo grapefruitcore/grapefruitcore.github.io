@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+			color: #fff;
+			font-size: 15px;
+            margin: 0;
+            padding: 0;
+			background-color: #f0efed
+        }
+		
+		h1 {
+		margin-top: 60px;
+		margin-bottom: 70px;
+		}
+		
+		.double-heading {
+            position: relative;
+			font-size: 40px;
+			font-weight: 400;
+			text-align: center;
+            line-height: 1.2;
+        }
+
+        .double-heading::before,
+        .double-heading::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 15px;
+            left: 80px;
+        }
+
+        .double-heading::before {
+            color: #fff; /* First color */
+            font-family: "Playfair Display", serif;/* First font */
+            z-index: 1;
+        }
+
+        .double-heading::after {
+            color: #08254f; /* Second color */
+            font-family: "Pinyon Script", cursive; /* Second font */
+            z-index: 0;
+            top: 0px; /* Adjust vertical position */
+            left: 20px; /* Adjust horizontal position */
+			font-size: 70px;
+        }
+		
+		h2{
+			font-family: "Playfair Display", serif;
+			font-size: 30px;
+			font-weight: 400;
+			text-align: center;
+			margin: 30px;
+			color: #fff;
+		}
+
+        .container {
+            width: 90%;
+            max-width: 450px;
+            margin: auto;
+			background-color: #1f408d;
+			padding: 20px;
+        }
+
+        .image-left, .image-right {
+            width: 50%;
+            margin: 10px;
+            position: relative;
+        }
+
+        .image-left {
+            float: left;
+            margin-right: 10px;
+			text-align: left;
+        }
+
+        .image-right {
+            float: right;
+            margin-left: 10px;
+			text-align: right;
+        }
+
+        .image-left img, .image-right img {
+            width: 95%;
+            height: auto;
+        }
+		
+		.caption-left {
+            position: absolute;
+			bottom: 0;
+			text-align: left;
+            transform: translateY(15px);
+            width: calc(100% - 20px);
+			margin-left: 20px;
+			font-family: "Playfair Display", serif;
+			font-size: 30px;
+			font-weight: 400;
+			font-style: italic;
+            background-color: rgba(0, 0, 0, 0);
+            color: #fff;
+        }
+
+        .caption-right {
+            position: absolute;
+			bottom: 0;
+			text-align: right;
+            transform: translateY(15px);
+            width: calc(100% - 20px);
+			margin-right: 20px;
+			font-family: "Playfair Display", serif;
+			font-size: 30px;
+			font-weight: 400;
+			font-style: italic;
+            background-color: rgba(0, 0, 0, 0);
+            color: #fff;
+        }
+
+        .three-image-box {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+			clear: both;
+        }
+
+        .three-image-box img {
+            width: 32%;
+            height: auto;
+        }
+
+        @media screen and (max-width: 450px) {
+		    .image-left, .image-right {
+                float: none;
+                width: 100%;
+                margin: 10px 0;
+            }
+
+            .caption-left, .caption-right {
+                top: 10px;
+                left: 0;
+                right: 0;
+                width: 100%;
+            }
+			
+            .three-image-box {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .three-image-box img {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="double-heading" data-text="YuAn Newsletter">*☆&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;☆*</h1>
+		<h2>Subtitle</h2>
+		
+		<p>Your content goes here. This is a paragraph to explain something related to the left image.</p>
+		
+        <div class="image-left">
+            <img src="img/email1.jpg" alt="Left Image">
+            <div class="caption-left">Left Image Caption</div>
+        </div>
+
+        <p>Your content goes here. This is a paragraph to explain something related to the left image.</p>
+
+        <div class="image-right">
+            <img src="img/email1.jpg" alt="Right Image">
+            <div class="caption-right">Right Image Caption</div>
+        </div>
+
+        <p>Your content goes here. This is a paragraph to explain something related to the right image.</p>
+
+        <div class="three-image-box">
+            <img src="image1.jpg" alt="Image 1">
+            <img src="image2.jpg" alt="Image 2">
+            <img src="image3.jpg" alt="Image 3">
+        </div>
+
+        <p>Your content goes here. This is a paragraph to explain the three images above.</p>
+    </div>
+</body>
+</html>
