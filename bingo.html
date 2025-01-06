@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive Bingo Cards</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Playwrite+AT:ital,wght@0,100..400;1,100..400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+			font-family: "Playwrite AT", serif;
+			font-optical-sizing: auto;
+			font-style: normal;
+            margin-bottom: 20px;
+        }
+        .bingo-card {
+            display: grid;
+            grid-template-columns: repeat(5, 100px);
+            grid-template-rows: repeat(5, 100px);
+            gap: 5px;
+            padding: 10px;
+            border: 5px solid black;
+            border-radius: 15px;
+        }
+        .bingo-cell {
+            border: 3px solid black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .marked {
+            background-color: lightblue;
+        }
+        .fixed {
+            background-color: navy;
+			color: white;
+			font-weight: bold;
+            cursor: not-allowed;
+        }
+        select, button {
+            margin: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>S&CC Office Bingo</h1>
+    <select id="cardName">
+        <option value="name1">name1</option>
+        <option value="name2">name2</option>
+        <option value="name3">name3</option>
+    </select>
+    <button id="loadButton">Load Card</button>
+    <div id="cardContainer"></div>
+	<div id="unsavedMessage">You have unsaved changes! In order to save and confirm your bingo entries, fill out the form below:</div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const cardNameSelect = document.getElementById('cardName');
+            const loadButton = document.getElementById('loadButton');
+            const unsavedMessage = document.getElementById('unsavedMessage');
+
+            const squareNames = [
+                "B1", "I1", "N1", "G1", "O1",
+                "B2", "I2", "N2", "G2", "O2",
+                "B3", "I3", "N3", "G3", "O3",
+                "B4", "I4", "N4", "G4", "O4",
+                "B5", "I5", "N5", "G5", "O5"
+            ];
+
+            const fixedCells = {
+                "name1": [0, 6, 12, 18, 24], // Example fixed cells for name1
+                "name2": [1, 7, 13, 19, 23], // Example fixed cells for name2
+                "name3": [2, 8, 14, 20, 22]  // Example fixed cells for name3
+            };
+
+            function createBingoCard(name) {
+                const container = document.getElementById('cardContainer');
+                container.innerHTML = ''; // Clear previous card
+                const card = document.createElement('div');
+                card.className = 'bingo-card';
+
+                squareNames.forEach((squareName, index) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'bingo-cell';
+                    cell.textContent = squareName;
+
+                    if (fixedCells[name].includes(index)) {
+                        cell.classList.add('fixed');
+                    } else {
+                        cell.addEventListener('click', () => {
+                            cell.classList.toggle('marked');
+                            checkUnsavedState();
+                        });
+                    }
+
+                    card.appendChild(cell);
+                });
+
+                container.appendChild(card);
+                loadState(name);
+            }
+
+            function saveState(name) {
+                const cells = document.querySelectorAll('.bingo-cell:not(.fixed)');
+                const markedCells = [];
+                cells.forEach((cell, index) => {
+                    if (cell.classList.contains('marked')) {
+                        markedCells.push(index);
+                    }
+                });
+                document.cookie = `${name}State=${JSON.stringify(markedCells)}; path=/`;
+                checkUnsavedState();
+            }
+
+            function loadState(name) {
+                const cookieArr = document.cookie.split('; ');
+                const cardStateCookie = cookieArr.find(row => row.startsWith(name + 'State='));
+                if (cardStateCookie) {
+                    const markedCells = JSON.parse(cardStateCookie.split('=')[1]);
+                    const cells = document.querySelectorAll('.bingo-cell:not(.fixed)');
+                    markedCells.forEach(index => {
+                        cells[index].classList.add('marked');
+                    });
+                }
+                checkUnsavedState();
+            }
+
+            function loadCard() {
+                const name = cardNameSelect.value;
+                if (name) {
+                    createBingoCard(name);
+                    document.cookie = `lastCardName=${name}; path=/`;
+                    unsavedMessage.style.display = 'none';
+                }
+            }
+
+            function checkUnsavedState() {
+                const cells = document.querySelectorAll('.bingo-cell:not(.fixed)');
+                const hasUnsavedBingos = Array.from(cells).some(cell => cell.classList.contains('marked'));
+                unsavedMessage.style.display = hasUnsavedBingos ? 'block' : 'none';
+            }
+
+            // Attach the loadCard function to the button click event
+            loadButton.addEventListener('click', loadCard);
+
+            // Load last used card name from cookie
+            function loadLastCardName() {
+                const cookieArr = document.cookie.split('; ');
+                const lastCardNameCookie = cookieArr.find(row => row.startsWith('lastCardName='));
+                if (lastCardNameCookie) {
+                    const lastCardName = lastCardNameCookie.split('=')[1];
+                    cardNameSelect.value = lastCardName;
+                    loadCard();
+                }
+            }
+
+            loadLastCardName();
+        });
+    </script>
+</body>
+</html>
