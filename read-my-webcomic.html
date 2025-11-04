@@ -49,11 +49,39 @@ header h1 {
   letter-spacing: 1px;
 }
 
+body.focus-mode header {
+  display: none;
+}
+
+body.focus-mode main {
+  height: 100vh;
+}
+
+
+.focus-btn {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 1000;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.focus-btn:hover {
+  background: #d91f55;
+}
+
+
 
 /* Controls */
 .controls {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
   align-items: center;
 }
 button, input {
@@ -128,29 +156,39 @@ button:hover {
 
 
 /* Viewer */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden; /* prevent double scrollbars */
+}
+
 main {
   flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 2rem;
+  overflow: hidden;
+  height: calc(100vh - 120px); /* subtract header/footer height */
 }
+
 .canvas {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
-  max-width: 965px;     /* original width */
-  max-height: 90vh;    /* limit to viewport height */
+  max-width: 965px;   /* never exceed original size */
+  max-height: 1250px;
   width: 100%;
-  height: 90%;
-  margin: 0 auto;
+  height: 100%;
 }
 
 .page {
+  max-width: 100%;
+  max-height: 100%;
   width: auto;
   height: auto;
-  max-width: 965px;
-  max-height: 90vh;    /* scale down if taller than screen */
   object-fit: contain;
   display: block;
 }
@@ -210,6 +248,8 @@ footer {
 
     </div>
   </main>
+  
+  <button id="toggleFocus" class="focus-btn" title="Toggle focus mode">▲</button>
 
   <footer>
     <div class="info">Use ← → keys. Enter a page number to jump.</div>
@@ -349,6 +389,11 @@ footer {
 
     [buttons.prevTop, buttons.prevOverlay].forEach(b => b.addEventListener('click', prev));
 	[buttons.nextTop, buttons.nextOverlay].forEach(b => b.addEventListener('click', next));
+	
+	document.getElementById('toggleFocus').addEventListener('click', () => {
+	  document.body.classList.toggle('focus-mode');
+	});
+
 
     buttons.goBtn.addEventListener('click', () => {
       const val = parseInt(pageInput.value, 10);
