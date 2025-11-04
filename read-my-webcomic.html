@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Read my Webcomic</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
+  <style>
+:root {
+  --bg: #f5f3ef;          /* off-white, paper-like */
+  --ink: #111;            /* dark ink */
+  --accent: #ff2e63;      /* neon pink accent */
+  --muted: #666;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Space Grotesk', sans-serif;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header */
+header {
+  padding: 1rem;
+  border-bottom: 2px solid var(--ink);
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: -0.5px;
+}
+
+
+/* Center and style the heading */
+header {
+  text-align: center;
+  padding: 0.5rem;
+  border-bottom: 2px solid var(--ink);
+}
+
+header h1 {
+  font-family: 'UnifrakturCook', 'Blackletter', 'Old English Text MT', serif;
+  font-weight: 700; 
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+
+/* Controls */
+.controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+button, input {
+  background: transparent;
+  border: 2px solid var(--ink);
+  padding: 0.4rem 0.8rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+button:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.page-input {
+  width: 60px;
+  text-align: center;
+}
+/* Overlay container anchored to bottom INSIDE the comic canvas */
+.nav-overlay {
+  position: absolute;
+  bottom: 8px;              /* small gap from bottom of image */
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 12px;          /* keeps buttons close to page edge */
+  pointer-events: none;     /* only buttons are clickable */
+}
+
+/* Angle bracket buttons */
+.overlay-btn {
+  pointer-events: auto;
+  background: none;
+  border: none;
+  font-size: 2.5rem;        /* large angle brackets */
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
+  transition: color 0.2s, transform 0.1s;
+}
+
+.overlay-btn:hover {
+  color: var(--accent);
+}
+
+.overlay-btn:active {
+  transform: translateY(2px);
+}
+
+.overlay-btn[disabled] {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.overlay-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.overlay-btn:active {
+  transform: translateY(2px);
+}
+.overlay-btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+
+/* Viewer */
+main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+.canvas {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 965px;     /* original width */
+  max-height: 90vh;    /* limit to viewport height */
+  width: 100%;
+  height: 90%;
+  margin: 0 auto;
+}
+
+.page {
+  width: auto;
+  height: auto;
+  max-width: 965px;
+  max-height: 90vh;    /* scale down if taller than screen */
+  object-fit: contain;
+  display: block;
+}
+
+
+/* Footer */
+footer {
+  padding: 1rem;
+  border-top: 2px solid var(--ink);
+  font-size: 0.8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.progress {
+  flex: 1;
+  height: 6px;
+  background: var(--muted);
+  margin-left: 1rem;
+  position: relative;
+}
+.bar {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+}
+
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Berlin</h1>
+    <div class="spacer"></div>
+    <div class="controls" aria-label="Top controls">
+      <button id="prevTop" title="Previous (←)">⟨</button>
+      <button id="nextTop" title="Next (→)">⟩</button>
+      <div class="page-jump">
+        <label for="pageInput" class="info">Page</label>
+        <input id="pageInput" class="page-input" type="number" min="1" value="1" />
+        <button id="goBtn" class="primary" title="Go to page">Go</button>
+      </div>
+      <div class="info" id="countInfo">of 0</div>
+    </div>
+  </header>
+
+  <main>
+	<div class="canvas">
+	  <img id="pageImg" class="page" alt="Comic page" />
+	  <div id="loading" class="loading" hidden>Loading…</div>
+	  <div id="error" class="error" hidden>Couldn't load this page.</div>
+
+	  <div class="nav-overlay">
+		<button id="prevOverlay" class="overlay-btn" title="Previous page">◀</button>
+		<button id="nextOverlay" class="overlay-btn" title="Next page">▶</button>
+	  </div>
+	</div>
+
+    </div>
+  </main>
+
+  <footer>
+    <div class="info">Use ← → keys. Enter a page number to jump.</div>
+    <div class="progress" aria-label="Reading progress">
+      <div id="bar" class="bar"></div>
+    </div>
+  </footer>
+
+  <script>
+    // Configure your pages here. Replace with real image URLs.
+    // Pages are 965 x 1250 pixels; fewer than 50 total supported.
+    const PAGES = [
+      // Example relative paths or URLs:
+      // "pages/001.jpg",
+	  "img/berlin/cover_2.png",
+      "img/berlin/page1.png",
+	  "img/berlin/page2.png",
+	  "img/berlin/page3.png",
+	  "img/berlin/page4.png",
+	  "img/berlin/page5.png",
+	  "img/berlin/page6.png"
+    ];
+
+    const img = document.getElementById('pageImg');
+    const loading = document.getElementById('loading');
+    const errorMsg = document.getElementById('error');
+    const bar = document.getElementById('bar');
+    const countInfo = document.getElementById('countInfo');
+    const pageInput = document.getElementById('pageInput');
+
+    const buttons = {
+      prevTop: document.getElementById('prevTop'),
+      nextTop: document.getElementById('nextTop'),
+      prevOverlay: document.getElementById('prevOverlay'),
+      nextOverlay: document.getElementById('nextOverlay'),
+      goBtn: document.getElementById('goBtn'),
+    };
+
+    let index = 0; // zero-based
+
+    function updateUI() {
+      const total = PAGES.length;
+      countInfo.textContent = `of ${total}`;
+      pageInput.max = String(total);
+      pageInput.value = String(index + 1);
+
+      const atStart = index <= 0;
+      const atEnd = index >= total - 1;
+      buttons.prevTop.disabled = atStart;
+      buttons.prevOverlay.disabled = atStart;
+      buttons.nextTop.disabled = atEnd;
+      buttons.nextOverlay.disabled = atEnd;
+
+      const progress = total > 1 ? (index / (total - 1)) * 100 : 100;
+      bar.style.width = `${progress}%`;
+    }
+
+    function showLoading(isLoading) {
+      loading.hidden = !isLoading;
+      errorMsg.hidden = true;
+    }
+
+    function showError(message) {
+      errorMsg.textContent = message || "Couldn't load this page.";
+      errorMsg.hidden = false;
+    }
+
+    // Preload neighboring pages to smooth navigation
+    function preloadNeighbors(i) {
+      [i - 1, i + 1].forEach(n => {
+        if (n >= 0 && n < PAGES.length) {
+          const pre = new Image();
+          pre.src = PAGES[n];
+        }
+      });
+    }
+	
+	function setCookie(name, value, days = 180) {
+	  const date = new Date();
+	  date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+	  const expires = "expires=" + date.toUTCString();
+	  document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)};${expires};path=/;SameSite=Lax`;
+	}
+
+	function getCookie(name) {
+	  const key = encodeURIComponent(name) + "=";
+	  const parts = document.cookie.split("; ");
+	  for (const part of parts) {
+		if (part.indexOf(key) === 0) {
+		  return decodeURIComponent(part.substring(key.length));
+		}
+	  }
+	  return null;
+	}
+
+    function goTo(i) {
+      const total = PAGES.length;
+      if (total === 0) return;
+
+      // Clamp index
+      i = Math.max(0, Math.min(i, total - 1));
+
+      if (i === index && img.src) return; // no-op
+
+      index = i;
+	  setCookie("comic_last_index", index); // save zero-based index
+		updateUI();
+		showLoading(true);
+      updateUI();
+      showLoading(true);
+
+      const src = PAGES[index];
+
+      // Load with graceful error handling
+      const loader = new Image();
+      loader.decoding = 'async';
+      loader.src = src;
+
+      loader.onload = () => {
+        img.src = src;
+        img.width = 965;  // intrinsic size hint (optional)
+        img.height = 1250;
+        showLoading(false);
+        preloadNeighbors(index);
+      };
+
+      loader.onerror = () => {
+        showLoading(false);
+        showError('Failed to load page. Try again or check the image path.');
+
+      };
+    }
+
+    // Events
+    function prev() { goTo(index - 1); }
+    function next() { goTo(index + 1); }
+
+    [buttons.prevTop, buttons.prevOverlay].forEach(b => b.addEventListener('click', prev));
+	[buttons.nextTop, buttons.nextOverlay].forEach(b => b.addEventListener('click', next));
+
+    buttons.goBtn.addEventListener('click', () => {
+      const val = parseInt(pageInput.value, 10);
+      if (Number.isFinite(val)) goTo(val - 1);
+    });
+
+    pageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const val = parseInt(pageInput.value, 10);
+        if (Number.isFinite(val)) goTo(val - 1);
+      }
+    });
+
+    // Keyboard navigation
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') prev();
+      else if (e.key === 'ArrowRight') next();
+    });
+
+    // Click-to-advance on the right half; go back on left half
+    //document.querySelector('.canvas').addEventListener('click', (e) => {
+    //  const rect = e.currentTarget.getBoundingClientRect();
+    //  const x = e.clientX - rect.left;
+    //  if (x < rect.width / 2) prev();
+    //  else next();
+    //});
+
+    // Optional: basic touch swipe
+    (function enableSwipe() {
+      let startX = null;
+      let startY = null;
+      const threshold = 40;
+      const canvas = document.querySelector('.canvas');
+
+      canvas.addEventListener('touchstart', (e) => {
+        const t = e.touches[0];
+        startX = t.clientX;
+        startY = t.clientY;
+      }, { passive: true });
+
+      canvas.addEventListener('touchend', (e) => {
+        if (startX == null || startY == null) return;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - startX;
+        const dy = t.clientY - startY;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > threshold) {
+          if (dx < 0) next(); else prev();
+        }
+        startX = startY = null;
+      }, { passive: true });
+    })();
+	
+
+    // Initialize
+    updateUI();
+
+	const saved = parseInt(getCookie("comic_last_index"), 10);
+	if (Number.isFinite(saved) && saved >= 0 && saved < PAGES.length) {
+	  goTo(saved);
+	} else {
+	  goTo(0);
+	}
+
+  </script>
+</body>
+</html>
