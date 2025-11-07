@@ -270,7 +270,11 @@ footer {
 	  "img/berlin/page3.png",
 	  "img/berlin/page4.png",
 	  "img/berlin/page5.png",
-	  "img/berlin/page6.png"
+	  "img/berlin/page6.png",
+	  "img/berlin/page7.png",
+	  "img/berlin/page8.png",
+	  "img/berlin/page9.png",
+	  "img/berlin/page10.png"
     ];
 
     const img = document.getElementById('pageImg');
@@ -291,21 +295,22 @@ footer {
     let index = 0; // zero-based
 
     function updateUI() {
-      const total = PAGES.length;
-      countInfo.textContent = `of ${total}`;
-      pageInput.max = String(total);
-      pageInput.value = String(index + 1);
+	  const total = PAGES.length;
+	  countInfo.textContent = `of ${total - 1}`; // last page number
+	  pageInput.max = String(total - 1);
+	  pageInput.value = String(index);
 
-      const atStart = index <= 0;
-      const atEnd = index >= total - 1;
-      buttons.prevTop.disabled = atStart;
-      buttons.prevOverlay.disabled = atStart;
-      buttons.nextTop.disabled = atEnd;
-      buttons.nextOverlay.disabled = atEnd;
+	  const atStart = index <= 0;
+	  const atEnd = index >= total - 1;
+	  buttons.prevTop.disabled = atStart;
+	  buttons.prevOverlay.disabled = atStart;
+	  buttons.nextTop.disabled = atEnd;
+	  buttons.nextOverlay.disabled = atEnd;
 
-      const progress = total > 1 ? (index / (total - 1)) * 100 : 100;
-      bar.style.width = `${progress}%`;
-    }
+	  const progress = total > 1 ? (index / (total - 1)) * 100 : 100;
+	  bar.style.width = `${progress}%`;
+	}
+
 
     function showLoading(isLoading) {
       loading.hidden = !isLoading;
@@ -395,17 +400,18 @@ footer {
 	});
 
 
-    buttons.goBtn.addEventListener('click', () => {
-      const val = parseInt(pageInput.value, 10);
-      if (Number.isFinite(val)) goTo(val - 1);
-    });
+	buttons.goBtn.addEventListener('click', () => {
+	  const val = parseInt(pageInput.value, 10);
+	  if (Number.isFinite(val)) goTo(val); // no -1
+	});
 
-    pageInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        const val = parseInt(pageInput.value, 10);
-        if (Number.isFinite(val)) goTo(val - 1);
-      }
-    });
+	pageInput.addEventListener('keydown', (e) => {
+	  if (e.key === 'Enter') {
+		const val = parseInt(pageInput.value, 10);
+		if (Number.isFinite(val)) goTo(val);
+	  }
+	});
+
 
     // Keyboard navigation
     window.addEventListener('keydown', (e) => {
