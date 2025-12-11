@@ -216,6 +216,53 @@ footer {
   width: 0%;
 }
 
+.content-warning {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.cw-box {
+  background: var(--bg);
+  color: var(--ink);
+  padding: 2rem;
+  border: 3px solid var(--ink);
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 8px 8px 0 var(--accent);
+}
+
+.cw-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.cw-actions button {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  border: 2px solid var(--ink);
+  background: var(--bg);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.cw-actions button:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Fix for the hidden attribute conflict */
+.content-warning[hidden] {
+  display: none !important;
+}
+
+
   </style>
 </head>
 <body>
@@ -227,6 +274,19 @@ footer {
       <button id="nextTop" title="Next (→)">⟩</button>
       <div class="page-jump">
         <label for="pageInput" class="info">Page</label>
+		
+		<div id="contentWarning" class="content-warning" hidden>
+		  <div class="cw-box">
+			<h2>Sensitive Content</h2>
+			<p>Are you sure you want to view this page?</p>
+
+			<div class="cw-actions">
+			  <button id="cwView">View Page</button>
+			  <button id="cwSkip">Skip Page</button>
+			</div>
+		  </div>
+		</div>
+
         <input id="pageInput" class="page-input" type="number" min="1" value="1" />
         <button id="goBtn" class="primary" title="Go to page">Go</button>
       </div>
@@ -280,7 +340,13 @@ footer {
 	  "img/berlin/page13.png",
 	  "img/berlin/page14.png",
 	  "img/berlin/page15.png",
-	  "img/berlin/page16.png"
+	  "img/berlin/page16.png",
+	  "img/berlin/page17.png",
+	  "img/berlin/page18.png",
+	  "img/berlin/page19.png",
+	  "img/berlin/page20.png",
+	  "img/berlin/page21.png",
+	  "img/berlin/page22.png"
     ];
 
     const img = document.getElementById('pageImg');
@@ -299,6 +365,24 @@ footer {
     };
 
     let index = 0; // zero-based
+    let warningAccepted = false;
+	
+	const cw = document.getElementById("contentWarning");
+	const cwView = document.getElementById("cwView");
+	const cwSkip = document.getElementById("cwSkip");
+
+	cwView.addEventListener("click", () => {
+      cw.hidden = true;
+      warningAccepted = true; // Mark as accepted
+      goTo(index); // Reload page 21, now bypassing the check
+    });
+
+    cwSkip.addEventListener("click", () => {
+      cw.hidden = true;
+      // No need to set accepted, just move on
+      goTo(index + 1); // skip to page 22
+    });
+
 
     function updateUI() {
 	  const total = PAGES.length;
@@ -356,43 +440,61 @@ footer {
 	  return null;
 	}
 
-    function goTo(i) {
-      const total = PAGES.length;
-      if (total === 0) return;
+	function goTo(i) {
+		  const total = PAGES.length;
+		  if (total === 0) return;
 
-      // Clamp index
-      i = Math.max(0, Math.min(i, total - 1));
+		  // Clamp index
+		  i = Math.max(0, Math.min(i, total - 1));
 
-      if (i === index && img.src) return; // no-op
+		  // 1. ALWAYS hide the warning initially. 
+		  // This ensures it disappears if you navigate away from page 21.
+		  const cw = document.getElementById("contentWarning");
+		  cw.hidden = true;
 
-      index = i;
-	  setCookie("comic_last_index", index); // save zero-based index
-		updateUI();
-		showLoading(true);
-      updateUI();
-      showLoading(true);
+		  // 2. Sensitive Content Check
+		  // Only stop if we are on page 21 AND the user hasn't accepted yet.
+		  if (i === 21 && !warningAccepted) {
+			  cw.hidden = false; // Show the warning
+			  index = i;         // Update the internal index number
+			  updateUI();        // Update the UI (page count, etc)
+			  return;            // STOP here. Do not load the image.
+		  }
 
-      const src = PAGES[index];
+		  // 3. Reset the acceptance flag if they leave the sensitive page
+		  // This ensures the warning comes back if they navigate away and return.
+		  if (i !== 21) {
+			  warningAccepted = false;
+		  }
 
-      // Load with graceful error handling
-      const loader = new Image();
-      loader.decoding = 'async';
-      loader.src = src;
+		  // Standard loading logic continues below...
+		  if (i === index && img.src && !cw.hidden) return; 
 
-      loader.onload = () => {
-        img.src = src;
-        img.width = 965;  // intrinsic size hint (optional)
-        img.height = 1250;
-        showLoading(false);
-        preloadNeighbors(index);
-      };
+		  index = i;
+		  setCookie("comic_last_index", index);
+		  updateUI();
+		  showLoading(true);
 
-      loader.onerror = () => {
-        showLoading(false);
-        showError('Failed to load page. Try again or check the image path.');
+		  const src = PAGES[index];
 
-      };
-    }
+		  // Load with graceful error handling
+		  const loader = new Image();
+		  loader.decoding = 'async';
+		  loader.src = src;
+
+		  loader.onload = () => {
+			img.src = src;
+			img.width = 965;
+			img.height = 1250;
+			showLoading(false);
+			preloadNeighbors(index);
+		  };
+
+		  loader.onerror = () => {
+			showLoading(false);
+			showError('Failed to load page. Try again or check the image path.');
+		  };
+		}
 
     // Events
     function prev() { goTo(index - 1); }
