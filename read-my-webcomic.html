@@ -4,308 +4,297 @@
   <meta charset="UTF-8" />
   <title>Read my Webcomic</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
   <style>
-:root {
-  --bg: #f5f3ef;          /* off-white, paper-like */
-  --ink: #111;            /* dark ink */
-  --accent: #ff2e63;      /* neon pink accent */
-  --muted: #666;
-}
+    :root {
+      --bg: #f5f3ef;          /* off-white, paper-like */
+      --ink: #111;            /* dark ink */
+      --accent: #ff2e63;      /* neon pink accent */
+      --muted: #666;
+    }
 
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: 'Space Grotesk', sans-serif;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Space Grotesk', sans-serif;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
 
-/* Header */
-header {
-  padding: 1rem;
-  border-bottom: 2px solid var(--ink);
-  font-weight: 700;
-  font-size: 1.2rem;
-  letter-spacing: -0.5px;
-}
+    /* Header */
+    header {
+      text-align: center;
+      padding: 0.5rem;
+      border-bottom: 2px solid var(--ink);
+    }
 
+    header h1 {
+      font-family: 'UnifrakturCook', 'Blackletter', 'Old English Text MT', serif;
+      font-weight: 700; 
+      margin: 0;
+      letter-spacing: 1px;
+    }
 
-/* Center and style the heading */
-header {
-  text-align: center;
-  padding: 0.5rem;
-  border-bottom: 2px solid var(--ink);
-}
+    body.focus-mode header {
+      display: none;
+    }
 
-header h1 {
-  font-family: 'UnifrakturCook', 'Blackletter', 'Old English Text MT', serif;
-  font-weight: 700; 
-  margin: 0;
-  letter-spacing: 1px;
-}
+    body.focus-mode main {
+      height: 100vh;
+    }
 
-body.focus-mode header {
-  display: none;
-}
+    .focus-btn {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 1000;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .focus-btn:hover {
+      background: #d91f55;
+    }
 
-body.focus-mode main {
-  height: 100vh;
-}
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+    button, input {
+      background: transparent;
+      border: 2px solid var(--ink);
+      padding: 0.4rem 0.8rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+    .page-input {
+      width: 60px;
+      text-align: center;
+    }
 
+    /* Toggle Button for Censored Content */
+    .censored-toggle {
+      background: var(--ink);
+      color: #fff;
+      font-weight: bold;
+      border-color: var(--ink);
+    }
+    .censored-toggle:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
 
-.focus-btn {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  z-index: 1000;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 6px 10px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.focus-btn:hover {
-  background: #d91f55;
-}
+    /* Overlay container anchored to bottom INSIDE the comic canvas */
+    .nav-overlay {
+      position: absolute;
+      bottom: 8px;              /* small gap from bottom of image */
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding: 0 12px;          /* keeps buttons close to page edge */
+      pointer-events: none;     /* only buttons are clickable */
+    }
 
+    /* Angle bracket buttons */
+    .overlay-btn {
+      pointer-events: auto;
+      background: none;
+      border: none;
+      font-size: 2.5rem;        /* large angle brackets */
+      font-weight: 700;
+      color: var(--ink);
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+      margin: 0;
+      transition: color 0.2s, transform 0.1s;
+    }
 
+    .overlay-btn:hover {
+      color: var(--accent);
+      background: transparent; /* Override default button hover */
+    }
 
-/* Controls */
-.controls {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-button, input {
-  background: transparent;
-  border: 2px solid var(--ink);
-  padding: 0.4rem 0.8rem;
-  font-family: inherit;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-button:hover {
-  background: var(--accent);
-  color: #fff;
-}
-.page-input {
-  width: 60px;
-  text-align: center;
-}
-/* Overlay container anchored to bottom INSIDE the comic canvas */
-.nav-overlay {
-  position: absolute;
-  bottom: 8px;              /* small gap from bottom of image */
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  padding: 0 12px;          /* keeps buttons close to page edge */
-  pointer-events: none;     /* only buttons are clickable */
-}
+    .overlay-btn:active {
+      transform: translateY(2px);
+    }
 
-/* Angle bracket buttons */
-.overlay-btn {
-  pointer-events: auto;
-  background: none;
-  border: none;
-  font-size: 2.5rem;        /* large angle brackets */
-  font-weight: 700;
-  color: var(--ink);
-  cursor: pointer;
-  line-height: 1;
-  padding: 0;
-  margin: 0;
-  transition: color 0.2s, transform 0.1s;
-}
+    .overlay-btn[disabled] {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
 
-.overlay-btn:hover {
-  color: var(--accent);
-}
+    /* Viewer */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden; /* prevent double scrollbars */
+    }
 
-.overlay-btn:active {
-  transform: translateY(2px);
-}
+    main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      height: calc(100vh - 120px); /* subtract header/footer height */
+    }
 
-.overlay-btn[disabled] {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
+    .canvas {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      max-width: 965px;   /* never exceed original size */
+      max-height: 1250px;
+      width: 100%;
+      height: 100%;
+    }
 
-.overlay-btn:hover {
-  background: var(--accent);
-  color: #fff;
-}
-.overlay-btn:active {
-  transform: translateY(2px);
-}
-.overlay-btn[disabled] {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
+    .page {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      display: block;
+    }
 
+    /* Footer */
+    footer {
+      padding: 1rem;
+      border-top: 2px solid var(--ink);
+      font-size: 0.8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .progress {
+      flex: 1;
+      height: 6px;
+      background: var(--muted);
+      margin-left: 1rem;
+      position: relative;
+    }
+    .bar {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+    }
 
-/* Viewer */
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  overflow: hidden; /* prevent double scrollbars */
-}
+    /* Popup Styling */
+    .content-warning {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
 
-main {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  height: calc(100vh - 120px); /* subtract header/footer height */
-}
+    /* CRITICAL FIX: Ensure hidden actually works */
+    .content-warning[hidden], button[hidden], div[hidden] {
+      display: none !important;
+    }
 
-.canvas {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  max-width: 965px;   /* never exceed original size */
-  max-height: 1250px;
-  width: 100%;
-  height: 100%;
-}
+    .cw-box {
+      background: var(--bg);
+      color: var(--ink);
+      padding: 2rem;
+      border: 3px solid var(--ink);
+      max-width: 420px;
+      text-align: center;
+      box-shadow: 8px 8px 0 var(--accent);
+    }
 
-.page {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  display: block;
-}
+    .cw-actions {
+      margin-top: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+    }
 
+    .cw-actions button {
+      flex: 1;
+      padding: 0.6rem 1rem;
+      border: 2px solid var(--ink);
+      background: var(--bg);
+      cursor: pointer;
+      font-weight: 700;
+    }
 
-/* Footer */
-footer {
-  padding: 1rem;
-  border-top: 2px solid var(--ink);
-  font-size: 0.8rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.progress {
-  flex: 1;
-  height: 6px;
-  background: var(--muted);
-  margin-left: 1rem;
-  position: relative;
-}
-.bar {
-  height: 100%;
-  background: var(--accent);
-  width: 0%;
-}
-
-.content-warning {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.75);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
-}
-
-.cw-box {
-  background: var(--bg);
-  color: var(--ink);
-  padding: 2rem;
-  border: 3px solid var(--ink);
-  max-width: 420px;
-  text-align: center;
-  box-shadow: 8px 8px 0 var(--accent);
-}
-
-.cw-actions {
-  margin-top: 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.cw-actions button {
-  flex: 1;
-  padding: 0.6rem 1rem;
-  border: 2px solid var(--ink);
-  background: var(--bg);
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.cw-actions button:hover {
-  background: var(--accent);
-  color: #fff;
-}
-
-/* Fix for the hidden attribute conflict */
-.content-warning[hidden] {
-  display: none !important;
-}
-
-
+    .cw-actions button:hover {
+      background: var(--accent);
+      color: #fff;
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>Berlin</h1>
-    <div class="spacer"></div>
     <div class="controls" aria-label="Top controls">
       <button id="prevTop" title="Previous (←)">⟨</button>
       <button id="nextTop" title="Next (→)">⟩</button>
+      
       <div class="page-jump">
         <label for="pageInput" class="info">Page</label>
-		
-		<div id="contentWarning" class="content-warning" hidden>
-		  <div class="cw-box">
-			<h2>Sensitive Content</h2>
-			<p>Are you sure you want to view this page?</p>
-
-			<div class="cw-actions">
-			  <button id="cwView">View Page</button>
-			  <button id="cwSkip">Skip Page</button>
-			</div>
-		  </div>
-		</div>
-
         <input id="pageInput" class="page-input" type="number" min="1" value="1" />
         <button id="goBtn" class="primary" title="Go to page">Go</button>
       </div>
+
+      <!-- New Censored Toggle Button -->
+      <button id="censoredToggle" class="censored-toggle" hidden>Show Uncensored Page</button>
+
       <div class="info" id="countInfo">of 0</div>
     </div>
   </header>
 
   <main>
-	<div class="canvas">
-	  <img id="pageImg" class="page" alt="Comic page" />
-	  <div id="loading" class="loading" hidden>Loading…</div>
-	  <div id="error" class="error" hidden>Couldn't load this page.</div>
+    <div class="canvas">
+      <img id="pageImg" class="page" alt="Comic page" />
+      <div id="loading" class="loading" hidden>Loading…</div>
+      <div id="error" class="error" hidden>Couldn't load this page.</div>
 
-	  <div class="nav-overlay">
-		<button id="prevOverlay" class="overlay-btn" title="Previous page">◀</button>
-		<button id="nextOverlay" class="overlay-btn" title="Next page">▶</button>
-	  </div>
-	</div>
+      <!-- Popup for Blocking Content (View/Skip) -->
+      <div id="contentWarning" class="content-warning" hidden>
+        <div class="cw-box">
+          <h2>Sensitive Content</h2>
+          <p>Are you sure you want to view this page?</p>
+          <div class="cw-actions">
+            <button id="cwView">View Page</button>
+            <button id="cwSkip">Skip Page</button>
+          </div>
+        </div>
+      </div>
 
+      <div class="nav-overlay">
+        <button id="prevOverlay" class="overlay-btn" title="Previous page">◀</button>
+        <button id="nextOverlay" class="overlay-btn" title="Next page">▶</button>
+      </div>
     </div>
   </main>
   
@@ -319,34 +308,44 @@ footer {
   </footer>
 
   <script>
-    // Configure your pages here. Replace with real image URLs.
-    // Pages are 965 x 1250 pixels; fewer than 50 total supported.
+    // PAGE CONFIGURATION
+    // You can now use strings for normal pages OR objects for special pages.
     const PAGES = [
-      // Example relative paths or URLs:
-      // "pages/001.jpg",
-	  "img/berlin/cover_2.png",
+      "img/berlin/cover_2.png",
       "img/berlin/page1.png",
-	  "img/berlin/page2.png",
-	  "img/berlin/page3.png",
-	  "img/berlin/page4.png",
-	  "img/berlin/page5.png",
-	  "img/berlin/page6.png",
-	  "img/berlin/page7.png",
-	  "img/berlin/page8.png",
-	  "img/berlin/page9.png",
-	  "img/berlin/page10.png",
-	  "img/berlin/page11.png",
-	  "img/berlin/page12.png",
-	  "img/berlin/page13.png",
-	  "img/berlin/page14.png",
-	  "img/berlin/page15.png",
-	  "img/berlin/page16.png",
-	  "img/berlin/page17.png",
-	  "img/berlin/page18.png",
-	  "img/berlin/page19.png",
-	  "img/berlin/page20.png",
-	  "img/berlin/page21.png",
-	  "img/berlin/page22.png"
+      "img/berlin/page2.png",
+      "img/berlin/page3.png",
+      "img/berlin/page4.png",
+      "img/berlin/page5.png",
+      "img/berlin/page6.png",
+      "img/berlin/page7.png",
+      "img/berlin/page8.png",
+      "img/berlin/page9.png",
+      "img/berlin/page10.png",
+      "img/berlin/page11.png",
+      "img/berlin/page12.png",
+      "img/berlin/page13.png",
+      "img/berlin/page14.png",
+      "img/berlin/page15.png",
+      "img/berlin/page16.png",
+      "img/berlin/page17.png",
+      "img/berlin/page18.png",
+      "img/berlin/page19.png",
+      "img/berlin/page20.png",
+      
+      // TYPE 1: "warning" - Blocks the page until user clicks View
+      { 
+        src: "img/berlin/page21.png", 
+        type: "warning" 
+      },
+	  "img/berlin/page22.png",
+      
+      // TYPE 2: "censored" - Shows censored version, allows toggle to original
+      // This assumes you have "page23_censored.png" and "page23.png"
+      { 
+        src: "img/berlin/page23.png", 
+        type: "censored" 
+      }
     ];
 
     const img = document.getElementById('pageImg');
@@ -355,6 +354,7 @@ footer {
     const bar = document.getElementById('bar');
     const countInfo = document.getElementById('countInfo');
     const pageInput = document.getElementById('pageInput');
+    const censoredToggle = document.getElementById('censoredToggle');
 
     const buttons = {
       prevTop: document.getElementById('prevTop'),
@@ -365,42 +365,63 @@ footer {
     };
 
     let index = 0; // zero-based
-    let warningAccepted = false;
-	
-	const cw = document.getElementById("contentWarning");
-	const cwView = document.getElementById("cwView");
-	const cwSkip = document.getElementById("cwSkip");
+    let warningAccepted = false; // For "blocked" pages
+    let showUncensored = false;  // For "censored" pages state
 
-	cwView.addEventListener("click", () => {
-      cw.hidden = true;
-      warningAccepted = true; // Mark as accepted
-      goTo(index); // Reload page 21, now bypassing the check
+    const cw = document.getElementById("contentWarning");
+    const cwView = document.getElementById("cwView");
+    const cwSkip = document.getElementById("cwSkip");
+
+    // --- Events for Blocking Popup ---
+    cwView.addEventListener("click", () => {
+      warningAccepted = true; // User accepted the warning
+      cw.hidden = true;       // Hide the box
+      goTo(index);            // Reload the current page to show image
     });
 
     cwSkip.addEventListener("click", () => {
-      cw.hidden = true;
-      // No need to set accepted, just move on
-      goTo(index + 1); // skip to page 22
+      cw.hidden = true;       
+      goTo(index + 1);        // Skip to next page
     });
 
+    // --- Events for Censored Toggle ---
+    censoredToggle.addEventListener("click", () => {
+      showUncensored = !showUncensored;
+      
+      // Update Button Text
+      censoredToggle.textContent = showUncensored ? "Hide Uncensored Page" : "Show Uncensored Page";
+      
+      // Reload image with new state
+      const pageConfig = PAGES[index];
+      if (typeof pageConfig === 'object' && pageConfig.type === 'censored') {
+         const src = showUncensored ? pageConfig.src : getCensoredPath(pageConfig.src);
+         img.src = src;
+      }
+    });
+
+    function getCensoredPath(originalPath) {
+      // Looks for "filename.ext" and returns "filename_censored.ext"
+      const parts = originalPath.split('.');
+      const ext = parts.pop();
+      return parts.join('.') + '_censored.' + ext;
+    }
 
     function updateUI() {
-	  const total = PAGES.length;
-	  countInfo.textContent = `of ${total - 1}`; // last page number
-	  pageInput.max = String(total - 1);
-	  pageInput.value = String(index);
+      const total = PAGES.length;
+      countInfo.textContent = `of ${total - 1}`;
+      pageInput.max = String(total - 1);
+      pageInput.value = String(index);
 
-	  const atStart = index <= 0;
-	  const atEnd = index >= total - 1;
-	  buttons.prevTop.disabled = atStart;
-	  buttons.prevOverlay.disabled = atStart;
-	  buttons.nextTop.disabled = atEnd;
-	  buttons.nextOverlay.disabled = atEnd;
+      const atStart = index <= 0;
+      const atEnd = index >= total - 1;
+      buttons.prevTop.disabled = atStart;
+      buttons.prevOverlay.disabled = atStart;
+      buttons.nextTop.disabled = atEnd;
+      buttons.nextOverlay.disabled = atEnd;
 
-	  const progress = total > 1 ? (index / (total - 1)) * 100 : 100;
-	  bar.style.width = `${progress}%`;
-	}
-
+      const progress = total > 1 ? (index / (total - 1)) * 100 : 100;
+      bar.style.width = `${progress}%`;
+    }
 
     function showLoading(isLoading) {
       loading.hidden = !isLoading;
@@ -412,130 +433,133 @@ footer {
       errorMsg.hidden = false;
     }
 
-    // Preload neighboring pages to smooth navigation
     function preloadNeighbors(i) {
       [i - 1, i + 1].forEach(n => {
         if (n >= 0 && n < PAGES.length) {
+          // Simplistic preload for strings or object.src
+          const p = PAGES[n];
+          const src = (typeof p === 'string') ? p : p.src;
           const pre = new Image();
-          pre.src = PAGES[n];
+          pre.src = src;
         }
       });
     }
-	
-	function setCookie(name, value, days = 180) {
-	  const date = new Date();
-	  date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
-	  const expires = "expires=" + date.toUTCString();
-	  document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)};${expires};path=/;SameSite=Lax`;
-	}
+    
+    function setCookie(name, value, days = 180) {
+      const date = new Date();
+      date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+      const expires = "expires=" + date.toUTCString();
+      document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)};${expires};path=/;SameSite=Lax`;
+    }
 
-	function getCookie(name) {
-	  const key = encodeURIComponent(name) + "=";
-	  const parts = document.cookie.split("; ");
-	  for (const part of parts) {
-		if (part.indexOf(key) === 0) {
-		  return decodeURIComponent(part.substring(key.length));
-		}
-	  }
-	  return null;
-	}
+    function getCookie(name) {
+      const key = encodeURIComponent(name) + "=";
+      const parts = document.cookie.split("; ");
+      for (const part of parts) {
+        if (part.indexOf(key) === 0) {
+          return decodeURIComponent(part.substring(key.length));
+        }
+      }
+      return null;
+    }
 
-	function goTo(i) {
-		  const total = PAGES.length;
-		  if (total === 0) return;
+    function goTo(i) {
+      const total = PAGES.length;
+      if (total === 0) return;
 
-		  // Clamp index
-		  i = Math.max(0, Math.min(i, total - 1));
+      // Clamp index
+      i = Math.max(0, Math.min(i, total - 1));
 
-		  // 1. ALWAYS hide the warning initially. 
-		  // This ensures it disappears if you navigate away from page 21.
-		  const cw = document.getElementById("contentWarning");
-		  cw.hidden = true;
+      // Reset UI elements for the new page
+      const cw = document.getElementById("contentWarning");
+      cw.hidden = true; // Hide popup
+      censoredToggle.hidden = true; // Hide toggle button
 
-		  // 2. Sensitive Content Check
-		  // Only stop if we are on page 21 AND the user hasn't accepted yet.
-		  if (i === 21 && !warningAccepted) {
-			  cw.hidden = false; // Show the warning
-			  index = i;         // Update the internal index number
-			  updateUI();        // Update the UI (page count, etc)
-			  return;            // STOP here. Do not load the image.
-		  }
+      // If we are moving to a NEW page, reset page-specific states
+      if (i !== index) {
+        warningAccepted = false; // Reset blocking warning
+        showUncensored = false;  // Reset censored toggle
+        censoredToggle.textContent = "Show Uncensored Page";
+      }
 
-		  // 3. Reset the acceptance flag if they leave the sensitive page
-		  // This ensures the warning comes back if they navigate away and return.
-		  if (i !== 21) {
-			  warningAccepted = false;
-		  }
+      // Determine Page Type
+      const pageConfig = PAGES[i];
+      const isObject = typeof pageConfig === 'object';
+      const type = isObject ? pageConfig.type : 'normal';
+      const originalSrc = isObject ? pageConfig.src : pageConfig;
 
-		  // Standard loading logic continues below...
-		  if (i === index && img.src && !cw.hidden) return; 
+      // --- LOGIC: TYPE "WARNING" (The Blocking Popup) ---
+      if (type === 'warning' && !warningAccepted) {
+        cw.hidden = false; // Show popup
+        index = i;
+        updateUI();
+        return; // STOP. Do not load image.
+      }
 
-		  index = i;
-		  setCookie("comic_last_index", index);
-		  updateUI();
-		  showLoading(true);
+      // --- LOGIC: TYPE "CENSORED" (The Toggle) ---
+      let actualSrc = originalSrc;
+      if (type === 'censored') {
+        censoredToggle.hidden = false; // Show the toggle button
+        
+        if (!showUncensored) {
+          actualSrc = getCensoredPath(originalSrc); // Load censored version
+        }
+      }
 
-		  const src = PAGES[index];
+      // Proceed to Load
+      index = i;
+      setCookie("comic_last_index", index);
+      updateUI();
+      showLoading(true);
 
-		  // Load with graceful error handling
-		  const loader = new Image();
-		  loader.decoding = 'async';
-		  loader.src = src;
+      const loader = new Image();
+      loader.decoding = 'async';
+      loader.src = actualSrc;
 
-		  loader.onload = () => {
-			img.src = src;
-			img.width = 965;
-			img.height = 1250;
-			showLoading(false);
-			preloadNeighbors(index);
-		  };
+      loader.onload = () => {
+        img.src = actualSrc;
+        // Keep original aspect ratio handling or fixed logic
+        img.width = 965;
+        img.height = 1250;
+        showLoading(false);
+        preloadNeighbors(index);
+      };
 
-		  loader.onerror = () => {
-			showLoading(false);
-			showError('Failed to load page. Try again or check the image path.');
-		  };
-		}
+      loader.onerror = () => {
+        showLoading(false);
+        showError('Failed to load page. Try again or check the image path.');
+      };
+    }
 
     // Events
     function prev() { goTo(index - 1); }
     function next() { goTo(index + 1); }
 
     [buttons.prevTop, buttons.prevOverlay].forEach(b => b.addEventListener('click', prev));
-	[buttons.nextTop, buttons.nextOverlay].forEach(b => b.addEventListener('click', next));
-	
-	document.getElementById('toggleFocus').addEventListener('click', () => {
-	  document.body.classList.toggle('focus-mode');
-	});
+    [buttons.nextTop, buttons.nextOverlay].forEach(b => b.addEventListener('click', next));
+    
+    document.getElementById('toggleFocus').addEventListener('click', () => {
+      document.body.classList.toggle('focus-mode');
+    });
 
+    buttons.goBtn.addEventListener('click', () => {
+      const val = parseInt(pageInput.value, 10);
+      if (Number.isFinite(val)) goTo(val); 
+    });
 
-	buttons.goBtn.addEventListener('click', () => {
-	  const val = parseInt(pageInput.value, 10);
-	  if (Number.isFinite(val)) goTo(val); // no -1
-	});
+    pageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const val = parseInt(pageInput.value, 10);
+        if (Number.isFinite(val)) goTo(val);
+      }
+    });
 
-	pageInput.addEventListener('keydown', (e) => {
-	  if (e.key === 'Enter') {
-		const val = parseInt(pageInput.value, 10);
-		if (Number.isFinite(val)) goTo(val);
-	  }
-	});
-
-
-    // Keyboard navigation
     window.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowLeft') prev();
       else if (e.key === 'ArrowRight') next();
     });
 
-    // Click-to-advance on the right half; go back on left half
-    //document.querySelector('.canvas').addEventListener('click', (e) => {
-    //  const rect = e.currentTarget.getBoundingClientRect();
-    //  const x = e.clientX - rect.left;
-    //  if (x < rect.width / 2) prev();
-    //  else next();
-    //});
-
-    // Optional: basic touch swipe
+    // Touch Swipe
     (function enableSwipe() {
       let startX = null;
       let startY = null;
@@ -559,17 +583,15 @@ footer {
         startX = startY = null;
       }, { passive: true });
     })();
-	
 
     // Initialize
     updateUI();
-
-	const saved = parseInt(getCookie("comic_last_index"), 10);
-	if (Number.isFinite(saved) && saved >= 0 && saved < PAGES.length) {
-	  goTo(saved);
-	} else {
-	  goTo(0);
-	}
+    const saved = parseInt(getCookie("comic_last_index"), 10);
+    if (Number.isFinite(saved) && saved >= 0 && saved < PAGES.length) {
+      goTo(saved);
+    } else {
+      goTo(0);
+    }
 
   </script>
 </body>
