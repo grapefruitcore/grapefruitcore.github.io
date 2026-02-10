@@ -65,6 +65,47 @@ export class Renderer {
     }
 
     /**
+     * Converts screen coordinates to cartesian grid coordinates.
+     * Inverse of cartToIso.
+     */
+    isoToCart(screenX, screenY) {
+        // Adjust for center offset and pan
+        const adjX = screenX - this.offsetX - this.panX;
+        const adjY = screenY - this.offsetY - this.panY;
+
+        // Solve the system of equations from cartToIso:
+        // isoX = (shiftedX - shiftedY) * (tileWidth / 2)
+        // isoY = (shiftedX + shiftedY) * (tileHeight / 2)
+
+        // Let A = shiftedX, B = shiftedY
+        // adjX = (A - B) * (w/2)  => (A - B) = adjX / (w/2)
+        // adjY = (A + B) * (h/2)  => (A + B) = adjY / (h/2)
+
+        // Summing the two equations:
+        // 2A = adjX / (w/2) + adjY / (h/2)
+        // A = 0.5 * (adjX / (w/2) + adjY / (h/2))
+
+        // Subtracting:
+        // 2B = adjY / (h/2) - adjX / (w/2)
+        // B = 0.5 * (adjY / (h/2) - adjX / (w/2))
+
+        const halfW = this.tileWidth / 2;
+        const halfH = this.tileHeight / 2;
+
+        const shiftedX = 0.5 * (adjX / halfW + adjY / halfH);
+        const shiftedY = 0.5 * (adjY / halfH - adjX / halfW);
+
+        // Add back the center offset of the room
+        const centerX = this.roomWidth / 2;
+        const centerY = this.roomHeight / 2;
+
+        return {
+            x: Math.floor(shiftedX + centerX),
+            y: Math.floor(shiftedY + centerY)
+        };
+    }
+
+    /**
      * Apply shadow overlay to an image, respecting alpha channel
      * @param {Image} image - Source image
      * @param {number} destWidth - Destination width

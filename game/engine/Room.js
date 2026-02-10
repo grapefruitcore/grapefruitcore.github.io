@@ -46,10 +46,24 @@ export class Room {
         };
     }
 
-    render(renderer, assetManager) {
+    render(renderer, assetManager, entities = []) {
         // Render each layer in order (base first, then overlays)
         for (const layer of this.layers) {
             this.renderLayer(layer.data, layer.zOffset, renderer, assetManager);
+        }
+
+        // Render entities on top of all layers
+        if (entities && entities.length > 0) {
+            // Sort by depth (x + y + z) to ensure correct overlap between characters
+            const sortedEntities = [...entities].sort((a, b) => {
+                const depthA = a.x + a.y + (a.z || 0);
+                const depthB = b.x + b.y + (b.z || 0);
+                return depthA - depthB;
+            });
+
+            for (const entity of sortedEntities) {
+                entity.render(renderer, assetManager);
+            }
         }
     }
 
@@ -61,6 +75,7 @@ export class Room {
                 const char = row.substring(x * 3, x * 3 + 3);
                 const tileDef = this.tileRegistry[char];
 
+                // Draw tile
                 if (tileDef && tileDef.asset) {
                     const image = assetManager.getAsset(tileDef.asset);
                     if (image) {

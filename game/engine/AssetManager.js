@@ -20,7 +20,10 @@ export class AssetManager {
                 resolve(img);
             };
             img.onerror = (err) => {
-                reject(new Error(`Failed to load image ${path}: ${err}`));
+                console.error(`Failed to load image ${path}:`, err);
+                // Resolve with null to allow other assets to load
+                this.assets[name] = null;
+                resolve(null);
             };
         });
     }
