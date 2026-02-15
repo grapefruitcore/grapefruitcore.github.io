@@ -49,9 +49,11 @@
             </div>
 
             <div id="dialogue-overlay" class="hidden">
+                <img id="dialogue-portrait" src="./assets/roommate_dialogue.png" alt="Roommate" class="hidden">
                 <div class="dialogue-box">
                     <h3 id="dialogue-speaker">Roommate</h3>
                     <p id="dialogue-text">...</p>
+                    <div id="dialogue-options"></div>
                     <button id="btn-next-dialogue">Next</button>
                 </div>
             </div>
@@ -60,6 +62,9 @@
                 <h2>What would you like to do?</h2>
                 <button id="btn-open-pomodoro">Pomodoro Timer</button>
                 <button id="btn-open-habits">Habit Tracker</button>
+                <button id="btn-reset-game"
+                    style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%); margin-top: 15px;">Reset
+                    Game</button>
                 <button class="close-btn" id="btn-close-menu">X</button>
             </div>
         </div>

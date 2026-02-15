@@ -1,0 +1,42 @@
+---
+title: DeepTalk
+---
+flowchart
+	n1["What's up?"]
+	n2@{ shape: "circle", label: "Hey..." }
+	n2 --- n1
+	n3["About what?"]
+	n4@{ shape: "circle", label: "Can we maybe talk?" }
+	n1["Hey, what's up?"] --- n4
+	n5["It's alright. Is something wrong?"]
+	n4@{ shape: "circle", label: "I've just been thinking, um..." } --- n3
+	n6@{ shape: "circle", label: "Just... just stuff. Sorry if I'm bugging you." }
+	n3 --- n6
+	n7@{ shape: "circle", label: "I just don't know what I'm doing with myself. Like... I'm kind of flailing here. I don't know what I want, where to go. <br>My career is going nowhere, I'm working a shitty part-time job, and I'm not even close to thinking about going back to school for my graduate degree. Like... am I gonna just be working retail and selling beats online until I die?" }
+	n6 --- n5
+	n5 --- n7
+	n8["Probably."]
+	n9@{ shape: "circle", label: "I was being rhetorical." }
+	n10["Have you tried looking for grants and scholarships? You're smart enough, that's for sure."]
+	n11@{ shape: "circle", label: "You think so?" }
+	n8 --- n9
+	n10 --- n11
+	n7 --- n8
+	n7 --- n10
+	n12["Not now."]
+	n2 --- n12
+	n13["What?"]
+	n2 --- n13
+	n14@{ shape: "circle", label: "Uh, I don't know, um... sorry. How's it going?" }
+	n13 --- n14
+	n14 --- n15["I mean, fine? Kinda bored."]
+	n14 --- n16["Good. How are you holding up?"]
+	n17@{ shape: "circle", label: "Okay..." }
+	n15 --- n17
+	n18@{ shape: "circle", label: "Just kind of, I dunno, I don't know what to do with myself." }
+	n17
+	n19["Maybe you can start with cleaning your side of the room."]
+	n20@{ shape: "circle", label: "Sure." }
+	n19 --- n20
+	n16 --- n18
+	n18 --- n19

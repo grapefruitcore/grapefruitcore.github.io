@@ -37,7 +37,7 @@ export class Renderer {
         const roomPixelHeight = (this.roomWidth + this.roomHeight) * (this.tileHeight / 2);
 
         const maxPanX = roomPixelWidth / 2;
-        const maxPanY = roomPixelHeight / 2;
+        const maxPanY = (roomPixelHeight / 2) + (5 * this.tileHeight);
 
         this.panX = Math.max(-maxPanX, Math.min(maxPanX, this.panX + deltaX));
         this.panY = Math.max(-maxPanY, Math.min(maxPanY, this.panY + deltaY));
@@ -180,5 +180,33 @@ export class Renderer {
                 this.ctx.drawImage(image, drawX, drawY, destWidth, destHeight);
             }
         }
+    }
+    /**
+     * Draw a translucent highlight on a specific grid tile
+     */
+    drawHighlight(x, y, z = 0, color = 'rgba(255, 255, 255, 0.3)') {
+        const pos = this.cartToIso(x, y);
+        pos.y -= z * this.tileHeight;
+
+        // Calculate diamond corners relative to center pos
+        // The tile center is at pos.x, pos.y
+        // Top: y - h/2
+        // Right: x + w/2
+        // Bottom: y + h/2
+        // Left: x - w/2
+
+        const halfW = this.tileWidth / 2;
+        const halfH = this.tileHeight / 2;
+
+        this.ctx.save();
+        this.ctx.fillStyle = color;
+        this.ctx.beginPath();
+        this.ctx.moveTo(pos.x, pos.y - halfH);
+        this.ctx.lineTo(pos.x + halfW, pos.y);
+        this.ctx.lineTo(pos.x, pos.y + halfH);
+        this.ctx.lineTo(pos.x - halfW, pos.y);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.restore();
     }
 }

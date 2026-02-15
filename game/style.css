@@ -137,6 +137,42 @@ button:active {
     margin-bottom: 15px;
 }
 
+/* Dialogue Options */
+#dialogue-portrait {
+    position: absolute;
+    bottom: -30px;
+    /* Slight adjustment */
+    left: -300px;
+    height: 400px;
+    /* Adjust as needed */
+    z-index: -1;
+    pointer-events: none;
+    transition: transform 0.3s ease-out;
+}
+
+#dialogue-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.dialogue-option-btn {
+    background: #fff;
+    border: 1px solid #d66d75;
+    color: #d66d75;
+    text-align: left;
+    padding: 8px 15px;
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+
+.dialogue-option-btn:hover {
+    background: #d66d75;
+    color: #fff;
+    transform: translateX(5px);
+}
+
 /* Utility */
 .hidden {
     display: none !important;

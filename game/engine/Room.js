@@ -46,28 +46,77 @@ export class Room {
         };
     }
 
-    render(renderer, assetManager, entities = []) {
-        // Render each layer in order (base first, then overlays)
+    render(renderer, assetManager, entities = [], assetOverrides = {}) {
+        // Group layers by Z (preserving relative order)
+        const layersByZ = new Map();
+
         for (const layer of this.layers) {
-            this.renderLayer(layer.data, layer.zOffset, renderer, assetManager);
+            const z = layer.zOffset || 0;
+            if (!layersByZ.has(z)) {
+                layersByZ.set(z, []);
+            }
+            layersByZ.get(z).push(layer);
         }
 
-        // Render entities on top of all layers
-        if (entities && entities.length > 0) {
-            // Sort by depth (x + y + z) to ensure correct overlap between characters
-            const sortedEntities = [...entities].sort((a, b) => {
-                const depthA = a.x + a.y + (a.z || 0);
-                const depthB = b.x + b.y + (b.z || 0);
-                return depthA - depthB;
-            });
+        // Group entities by Z (floored)
+        const entitiesByZ = new Map();
+        if (entities) {
+            for (const entity of entities) {
+                const z = Math.floor(entity.z || 0);
+                if (!entitiesByZ.has(z)) {
+                    entitiesByZ.set(z, []);
+                }
+                entitiesByZ.get(z).push(entity);
+            }
+        }
 
-            for (const entity of sortedEntities) {
-                entity.render(renderer, assetManager);
+        // Get all unique Z levels sorted
+        const allZs = new Set([...layersByZ.keys(), ...entitiesByZ.keys()]);
+        const sortedZs = Array.from(allZs).sort((a, b) => a - b);
+
+        // Render in order
+        for (const z of sortedZs) {
+            // 1. Render Layers at this Z
+            if (layersByZ.has(z)) {
+                for (const layer of layersByZ.get(z)) {
+                    this.renderLayer(layer.data, z, renderer, assetManager, assetOverrides);
+                }
+            }
+
+            // 2. Render Entities at this Z
+            if (entitiesByZ.has(z)) {
+                const levelEntities = entitiesByZ.get(z);
+                // Sort by depth (x + y)
+                levelEntities.sort((a, b) => (a.x + a.y) - (b.x + b.y));
+
+                for (const entity of levelEntities) {
+                    entity.render(renderer, assetManager);
+                }
             }
         }
     }
 
-    renderLayer(floorplan, layerZOffset, renderer, assetManager) {
+    getTopZAt(x, y) {
+        // Find the highest layer that has a non-empty tile at x,y
+        // Iterate backwards through layers
+        for (let i = this.layers.length - 1; i >= 0; i--) {
+            const layer = this.layers[i];
+            const data = layer.data;
+            if (y >= 0 && y < data.length) {
+                const row = data[y];
+                if (x >= 0 && x < row.length / 3) {
+                    const char = row.substring(x * 3, x * 3 + 3);
+                    const tileDef = this.tileRegistry[char];
+                    if (tileDef && tileDef.type !== 'empty') {
+                        return layer.zOffset || 0;
+                    }
+                }
+            }
+        }
+        return 0; // Default to ground
+    }
+
+    renderLayer(floorplan, layerZOffset, renderer, assetManager, assetOverrides = {}) {
         for (let y = 0; y < floorplan.length; y++) {
             const row = floorplan[y];
             // Iterate by 3 characters for the new naming convention
@@ -77,7 +126,18 @@ export class Room {
 
                 // Draw tile
                 if (tileDef && tileDef.asset) {
-                    const image = assetManager.getAsset(tileDef.asset);
+                    let assetName = tileDef.asset;
+
+                    // Check for override
+                    // We need a unique ID for the tile to check overrides. 
+                    // Using "char" is one way, but if multiple tiles have same char, all change.
+                    // The requirement says "the roommate should share a tile with the bathtub".
+                    // The bathtub has a unique char 'bt1'.
+                    if (assetOverrides[char]) {
+                        assetName = assetOverrides[char];
+                    }
+
+                    const image = assetManager.getAsset(assetName);
                     if (image) {
                         const height = tileDef.height || 1;
                         const options = {
@@ -95,5 +155,58 @@ export class Room {
                 }
             }
         }
+    }
+
+    getObjectAt(x, y) {
+        // Iterate mainly through furniture/overlay layers first? 
+        // Or just iterate backwards through layers to find the top-most interactable
+        for (let i = this.layers.length - 1; i >= 0; i--) {
+            const layer = this.layers[i].data;
+            if (y >= 0 && y < layer.length) {
+                const row = layer[y];
+                if (x >= 0 && x < row.length / 3) {
+                    const char = row.substring(x * 3, x * 3 + 3);
+                    const tileDef = this.tileRegistry[char];
+                    if (tileDef && tileDef.type !== 'empty') {
+                        return tileDef;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    getInteractionTarget(renderer, screenX, screenY) {
+        // Iterate backwards (top layers first)
+        for (let i = this.layers.length - 1; i >= 0; i--) {
+            const layerObj = this.layers[i];
+            const z = layerObj.zOffset || 0;
+            const layerData = layerObj.data;
+
+            // Adjust screenY because of Z height
+            // VisualY = BaseY - z*th
+            // BaseY = VisualY + z*th
+            const adjustedY = screenY + (z * renderer.tileHeight);
+
+            const gridPos = renderer.isoToCart(screenX, adjustedY);
+
+            // Check bounds
+            if (gridPos.y >= 0 && gridPos.y < layerData.length &&
+                gridPos.x >= 0) {
+
+                const row = layerData[gridPos.y];
+                if (gridPos.x < row.length / 3) {
+                    const char = row.substring(gridPos.x * 3, gridPos.x * 3 + 3);
+                    const tileDef = this.tileRegistry[char];
+
+                    if (tileDef && tileDef.type !== 'empty') {
+                        return { x: gridPos.x, y: gridPos.y, z: z, tile: tileDef };
+                    }
+                }
+            }
+        }
+
+        // Return null if nothing hit, let main handle fallback
+        return null;
     }
 }
