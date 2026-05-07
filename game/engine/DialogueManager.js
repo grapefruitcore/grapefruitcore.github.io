@@ -54,6 +54,20 @@ export class DialogueManager {
                         effect: (s) => {
                             s.changeRomance(2);
                             console.log("Bathtub: ;)");
+                            return {
+                                cutscene: {
+                                    asset: 'cutscene_bath',
+                                    lines: [
+                                        "I strip down in about three seconds flat, then slide into the hot water behind them. The tub is big, but not big enough for two grown adults. Our bodies are pressed together, skin to skin, the warmth of the water making it feel like we're melting into each other. I wrap my arms around them, my chin resting on the top of their head. They smell so good. Clean, and like soap, and like themselves.",
+                                        "We just soak there for a while, letting the heat penetrate our muscles, the silence broken only by the sound of our breathing and the occasional drip from the faucet. I run my hands over their wet skin, over the muscles in their arms, the curve of their belly, the sensitive insides of their thighs.",
+                                        "They're so soft. They wiggle a little, pressing back against me. My hands travel further down until I find what I'm looking for. They're already hard, a little breath catching in their throat as I stroke them gently.",
+                                        "I nip at the soft skin of their neck, and they let out a little gasp. They're so responsive to every touch, every bite, every kiss.",
+                                        "I kiss a slow path down their shoulder blade as I turn them around to face me. Their hair is slick and dark with water, clinging to their cheeks and forehead. The way the light catches their long, dark eyelashes... God. I'm so glad that's the face that'll greet me when I wake up tomorrow morning.",
+                                        "We move, slow and deliberate at first, but then we're both so close to the edge that we can't hold back.",
+                                        "That perfect, sweet body, a body I'll never get tired of, tenses up and spills right into my hands. I feel so proud of myself."
+                                    ]
+                                }
+                            };
                         }
                     },
                     {

@@ -5,6 +5,7 @@ import { GameState } from './engine/GameState.js';
 import { Character } from './engine/Character.js';
 import { UIManager } from './engine/UIManager.js';
 import { DialogueManager } from './engine/DialogueManager.js';
+import { ProductivityDialogueManager } from './engine/ProductivityDialogueManager.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -426,7 +427,7 @@ async function init() {
 
         assetManager = new AssetManager();
         renderer = new Renderer(ctx);
-        gameState = new GameState();
+        gameState = new GameState(currentMode);
         window.gameState = gameState; // Expose for debugging
 
         // Load Date Stories
@@ -445,7 +446,13 @@ async function init() {
         resizeCanvas();
 
         uiManager = new UIManager(gameState, assetManager);
-        dialogueManager = new DialogueManager(gameState);
+
+        // Use appropriate dialogue manager based on mode
+        if (currentMode === 'productivity') {
+            dialogueManager = new ProductivityDialogueManager(gameState);
+        } else {
+            dialogueManager = new DialogueManager(gameState);
+        }
 
         room = new Room([
             baseLayer,
@@ -460,6 +467,12 @@ async function init() {
 
         player = new Character('Player', 8, 7, 'player');
         roommate = new Character('Roommate', 9, 3, 'roommate');
+
+        if (currentMode === 'productivity') {
+            player.customization = gameState.playerCustomization;
+            roommate.customization = gameState.roommateCustomization;
+            roommate.flip = true;
+        }
 
         await assetManager.loadAssets({
             'floor': './assets/wood_floor.png',
@@ -504,7 +517,63 @@ async function init() {
             "bunk_bed": "./assets/bunk_bed.png",
             "room_divider": "./assets/room_divider.png",
             "fence": "./assets/fence.png",
-            "fridge": "./assets/fridge.png"
+            "fridge": "./assets/fridge.png",
+            'cutscene_bath': './assets/cutscene_bath.png',
+            'bodyF_skin1': './assets/custom_character/default/bodyF_skin1.png',
+            'bodyF_skin2': './assets/custom_character/default/bodyF_skin2.png',
+            'bodyF_skin3': './assets/custom_character/default/bodyF_skin3.png',
+            'bodyM_skin1': './assets/custom_character/default/bodyM_skin1.png',
+            'bodyM_skin2': './assets/custom_character/default/bodyM_skin2.png',
+            'bodyM_skin3': './assets/custom_character/default/bodyM_skin3.png',
+            'clothesF_default': './assets/custom_character/default/clothesF_default.png',
+            'clothesM_default': './assets/custom_character/default/clothesM_default.png',
+            'face_default': './assets/custom_character/default/face_default.png',
+            'hairCurly_colour1': './assets/custom_character/default/hairCurly_colour1.png',
+            'hairCurly_colour2': './assets/custom_character/default/hairCurly_colour2.png',
+            'hairCurly_colour3': './assets/custom_character/default/hairCurly_colour3.png',
+            'hairStraight_colour1': './assets/custom_character/default/hairStraight_colour1.png',
+            'hairStraight_colour2': './assets/custom_character/default/hairStraight_colour2.png',
+            'hairStraight_colour3': './assets/custom_character/default/hairStraight_colour3.png',
+            'hairCurly_colour4': './assets/custom_character/unlockable/hairCurly_colour4.png',
+            'hairStraight_colour4': './assets/custom_character/unlockable/hairStraight_colour4.png',
+            'hairCurly_colour5': './assets/custom_character/unlockable/hairCurly_colour5.png',
+            'hairStraight_colour5': './assets/custom_character/unlockable/hairStraight_colour5.png',
+            'hairCurly_colour6': './assets/custom_character/unlockable/hairCurly_colour6.png',
+            'hairStraight_colour6': './assets/custom_character/unlockable/hairStraight_colour6.png',
+            'hairCurly_colour7': './assets/custom_character/unlockable/hairCurly_colour7.png',
+            'hairStraight_colour7': './assets/custom_character/unlockable/hairStraight_colour7.png',
+            'clothesF_red': './assets/custom_character/unlockable/clothesF_red.png',
+            'clothesF_blue': './assets/custom_character/unlockable/clothesF_blue.png',
+
+            'green_rug_blue': './assets/custom_furniture/green_rug_blue.png',
+            'green_rug_hotpink': './assets/custom_furniture/green_rug_hotpink.png',
+            'green_rug_pinkred': './assets/custom_furniture/green_rug_pinkred.png',
+            'green_rug_violet': './assets/custom_furniture/green_rug_violet.png',
+            'green_rug_beige': './assets/custom_furniture/green_rug_beige.png',
+
+            'dark_green_rug_blue': './assets/custom_furniture/dark_green_rug_blue.png',
+            'dark_green_rug_hotpink': './assets/custom_furniture/dark_green_rug_hotpink.png',
+            'dark_green_rug_pinkred': './assets/custom_furniture/dark_green_rug_pinkred.png',
+            'dark_green_rug_violet': './assets/custom_furniture/dark_green_rug_violet.png',
+            'dark_green_rug_beige': './assets/custom_furniture/dark_green_rug_beige.png',
+
+            'bed_blue': './assets/custom_furniture/bed_blue.png',
+            'bed_hotpink': './assets/custom_furniture/bed_hotpink.png',
+            'bed_pinkred': './assets/custom_furniture/bed_pinkred.png',
+            'bed_violet': './assets/custom_furniture/bed_violet.png',
+            'bed_beige': './assets/custom_furniture/bed_beige.png',
+
+            'bunk_bed_blue': './assets/custom_furniture/bunk_bed_blue.png',
+            'bunk_bed_hotpink': './assets/custom_furniture/bunk_bed_hotpink.png',
+            'bunk_bed_pinkred': './assets/custom_furniture/bunk_bed_pinkred.png',
+            'bunk_bed_violet': './assets/custom_furniture/bunk_bed_violet.png',
+            'bunk_bed_beige': './assets/custom_furniture/bunk_bed_beige.png',
+
+            'couch_blue': './assets/custom_furniture/couch_blue.png',
+            'couch_hotpink': './assets/custom_furniture/couch_hotpink.png',
+            'couch_pinkred': './assets/custom_furniture/couch_pinkred.png',
+            'couch_violet': './assets/custom_furniture/couch_violet.png',
+            'couch_beige': './assets/custom_furniture/couch_beige.png'
         });
 
         console.log('Assets loaded. Starting game loop.');
@@ -516,34 +585,36 @@ async function init() {
 }
 
 function gameLoop() {
-    // Clear screen
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Fill background with off-white
+    ctx.fillStyle = '#F5F0EB';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Render characters
     const entities = [];
     if (player) entities.push(player);
 
     if (room && renderer && assetManager) {
-        // Prepare entities
-        // const entities = [player]; // This line is removed as entities is already declared and player added above.
-
-        // Check roommate activity
+        // Build asset overrides
         const assetOverrides = {};
+
+        // Apply Productivity mode furniture customizations first
+        if (gameState.gameMode === 'productivity' && gameState.furnitureCustomization) {
+            for (const [tileChar, assetId] of Object.entries(gameState.furnitureCustomization)) {
+                if (assetId && assetId !== '') {
+                    assetOverrides[tileChar] = assetId;
+                }
+            }
+        }
+
+        // Roommate activity overrides (takes precedence over custom colors if they overlap, 
+        // though roommate interacts with default base sprite only in story mode usually)
         let showRoommate = true;
 
         if (gameState.roommateActivity) {
             // Roommate is busy with furniture
             showRoommate = false;
 
-            // Map activity type to asset override
-            // e.g. type "bathtub" -> override the bathtub tile with "bathtub_with_roommate"
-            // We need to know WHICH tile char corresponds to the furniture.
-            // For now, hardcode mapping based on requirements
             if (gameState.roommateActivity.type === 'bathtub') {
-                // 'bt1' is the bathtub tile char in main.js logic (we need to verify this or find it dynamically)
-                // Actually looking at main.js, we don't see the map definition here, it's likely passed to Room constructor.
-                // But we know 'bathtub' asset is used by 'bt1' (implied).
-                // Let's assume 'bt1' is the char.
                 assetOverrides['bt1'] = 'bathtub_with_roommate';
             } else if (gameState.roommateActivity.type === 'green_couch') {
                 assetOverrides['cg1'] = 'couch_with_roommate';
@@ -565,4 +636,97 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-init();
+// ============ MODE SELECTION & INIT ============
+let currentMode = localStorage.getItem('grapefruit_current_mode');
+
+function showModeSelection() {
+    const overlay = document.createElement('div');
+    overlay.id = 'mode-select-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#F5F0EB;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:3000;';
+
+    const title = document.createElement('h1');
+    title.textContent = 'Choose Your Mode';
+    title.style.cssText = 'color:#2A2420;margin-bottom:10px;font-size:2rem;';
+    overlay.appendChild(title);
+
+    const subtitle = document.createElement('p');
+    subtitle.textContent = 'You can switch modes anytime from the player menu.';
+    subtitle.style.cssText = 'color:#8A8078;margin-bottom:40px;font-size:0.9rem;';
+    overlay.appendChild(subtitle);
+
+    const cardsContainer = document.createElement('div');
+    cardsContainer.style.cssText = 'display:flex;gap:24px;flex-wrap:wrap;justify-content:center;';
+
+    // Story Mode Card
+    const storyCard = createModeCard(
+        '📖 Story Mode',
+        'Play as Charlie with your roommate Avery. Unlock dialogue, build your relationship, and discover the story.',
+        '#C2534C',
+        '#A8423C',
+        () => selectMode('story', overlay)
+    );
+    cardsContainer.appendChild(storyCard);
+
+    // Productivity Mode Card
+    const prodCard = createModeCard(
+        '⚡ Productivity Mode',
+        'Name your characters, earn points, and spend them to customize your roommate — dialogue, clothes, and more.',
+        '#A8B8A0',
+        '#8FA387',
+        () => selectMode('productivity', overlay)
+    );
+    cardsContainer.appendChild(prodCard);
+
+    overlay.appendChild(cardsContainer);
+    document.body.appendChild(overlay);
+}
+
+function createModeCard(title, description, bgColor, hoverColor, onClick) {
+    const card = document.createElement('div');
+    card.style.cssText = `background:${bgColor};padding:32px 24px;border-radius:4px;width:280px;cursor:pointer;color:#fff;text-align:center;transition:background 0.15s;border:1px solid rgba(255,255,255,0.15);`;
+
+    card.addEventListener('mouseenter', () => {
+        card.style.background = hoverColor;
+    });
+    card.addEventListener('mouseleave', () => {
+        card.style.background = bgColor;
+    });
+
+    const h2 = document.createElement('h2');
+    h2.textContent = title;
+    h2.style.cssText = 'margin:0 0 12px 0;font-size:1.4rem;';
+    card.appendChild(h2);
+
+    const p = document.createElement('p');
+    p.textContent = description;
+    p.style.cssText = 'font-size:0.95rem;line-height:1.5;opacity:0.9;';
+    card.appendChild(p);
+
+    card.addEventListener('click', onClick);
+    return card;
+}
+
+function selectMode(mode, overlay) {
+    currentMode = mode;
+    localStorage.setItem('grapefruit_current_mode', mode);
+    if (overlay && overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+    }
+    init();
+}
+
+window.switchGameMode = function () {
+    // Save current state before switching
+    if (gameState) {
+        gameState.saveState();
+    }
+    // Clear mode preference so selection screen appears on reload
+    localStorage.removeItem('grapefruit_current_mode');
+    window.location.reload();
+};
+
+if (currentMode) {
+    init();
+} else {
+    showModeSelection();
+}

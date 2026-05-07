@@ -47,6 +47,10 @@ export class Room {
     }
 
     render(renderer, assetManager, entities = [], assetOverrides = {}) {
+        // Draw room outline before tiles
+        const dims = this.getDimensions();
+        renderer.drawRoomOutline(dims.width / 3, dims.height);
+
         // Group layers by Z (preserving relative order)
         const layersByZ = new Map();
 

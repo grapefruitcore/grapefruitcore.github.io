@@ -6,6 +6,8 @@ export class Character {
         this.z = 0; // Default to ground level
         this.textureId = textureId;
         this.isVisible = true;
+        this.customization = null;
+        this.flip = false;
     }
 
     setPosition(x, y, z = 0) {
@@ -17,15 +19,29 @@ export class Character {
     render(renderer, assetManager) {
         if (!this.isVisible) return;
 
-        const image = assetManager.getAsset(this.textureId);
-        if (image) {
-            // Characters are usually 1x1 or slightly larger.
-            // Assuming 1x1 tile footprint for now, adjust as needed.
-            // Center characters on the tile?
-            renderer.drawIsoTile(this.x, this.y, this.z, image, {
-                tileSpanX: 1,
-                tileSpanY: 1
-            });
+        if (this.customization) {
+            const parts = ['body', 'clothes', 'face', 'hair'];
+            for (const part of parts) {
+                if (this.customization[part]) {
+                    const image = assetManager.getAsset(this.customization[part]);
+                    if (image) {
+                        renderer.drawIsoTile(this.x, this.y, this.z, image, {
+                            tileSpanX: 1,
+                            tileSpanY: 1,
+                            flip: this.flip
+                        });
+                    }
+                }
+            }
+        } else {
+            const image = assetManager.getAsset(this.textureId);
+            if (image) {
+                renderer.drawIsoTile(this.x, this.y, this.z, image, {
+                    tileSpanX: 1,
+                    tileSpanY: 1,
+                    flip: this.flip
+                });
+            }
         }
     }
 }

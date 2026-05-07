@@ -209,4 +209,31 @@ export class Renderer {
         this.ctx.fill();
         this.ctx.restore();
     }
+
+    /**
+     * Draw a solid white outline around the isometric room perimeter
+     * @param {number} roomW - Room width in tiles
+     * @param {number} roomH - Room height in tiles
+     */
+    drawRoomOutline(roomW, roomH) {
+        // Four corners of the room grid
+        const topLeft = this.cartToIso(0, 0);
+        const topRight = this.cartToIso(roomW, 0);
+        const bottomRight = this.cartToIso(roomW, roomH);
+        const bottomLeft = this.cartToIso(0, roomH);
+
+        this.ctx.save();
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.strokeStyle = '#FFFFFF';
+        this.ctx.lineWidth = 6;
+        this.ctx.beginPath();
+        this.ctx.moveTo(topLeft.x, topLeft.y);
+        this.ctx.lineTo(topRight.x, topRight.y);
+        this.ctx.lineTo(bottomRight.x, bottomRight.y);
+        this.ctx.lineTo(bottomLeft.x, bottomLeft.y);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.stroke();
+        this.ctx.restore();
+    }
 }

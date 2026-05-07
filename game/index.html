@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Isometric Room Engine</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -16,35 +17,120 @@
         <div id="ui-layer">
             <div id="hud">
                 <div class="points-display">Points: <span id="points-value">0</span></div>
+                <div id="points-hover-menu">
+                    <button id="hover-btn-pomodoro">Pomodoro Timer</button>
+                    <button id="hover-btn-habits">Habit Tracker</button>
+                    <button id="hover-btn-goals">Long-term Goals</button>
+                    <button id="hover-btn-reminisce">📔 Reminisce</button>
+                    <button id="hover-btn-switch-mode" class="btn-sage">🔄 Switch Mode</button>
+                    <button id="hover-btn-reset-game" class="btn-danger">Reset Game</button>
+                </div>
             </div>
 
             <div id="pomodoro-overlay" class="hidden">
                 <div class="panel">
                     <h2>Pomodoro Timer</h2>
-                    <div id="timer-display">25:00</div>
+
+                    <div style="margin-bottom:15px; text-align:left;">
+                        <label style="font-size:0.85em; color:#8A8078; display:block; margin-bottom:5px;">Link to Goal (Optional):</label>
+                        <select id="pomodoro-goal-select" style="width:100%; padding:4px; border-radius:4px; border:1px solid #D4CFC8;"></select>
+                    </div>
+
+                    <div id="timer-display" style="font-size: 3rem; font-weight: bold; color: #2A2420; margin-bottom: 20px;">25:00</div>
+                    
+                    <div class="controls"
+                        style="display: flex; gap: 8px; align-items: center; justify-content: center; margin-bottom: 15px;">
+                        <input type="number" id="pomodoro-duration-input" value="30" min="1" max="120"
+                            style="width: 60px; padding: 4px; border: 1px solid #D4CFC8; border-radius: 4px; font-size: 1rem;">
+                        <span>min</span>
+                    </div>
+                    
                     <div class="controls">
-                        <button id="btn-start-timer">Start (30m)</button>
+                        <button id="btn-start-timer">Start</button>
                         <button id="btn-pause-timer">Pause</button>
                         <button id="btn-reset-timer">Reset</button>
                     </div>
+
+                    <div style="margin-top:20px; border-top:1px solid #D4CFC8; padding-top:15px; text-align:left;">
+                        <span style="font-size:0.85em; font-weight:bold;">Manual Log Session</span>
+                        <div style="display:flex; gap:5px; margin-top:5px;">
+                            <input type="number" id="pomodoro-manual-input" placeholder="Mins" style="flex:1; padding:4px; border-radius:4px; border:1px solid #D4CFC8;">
+                            <button id="btn-log-pomodoro" style="padding:4px 8px;">Log</button>
+                        </div>
+                    </div>
+
                     <button class="close-btn" id="btn-close-pomodoro">X</button>
                 </div>
             </div>
 
             <div id="habits-overlay" class="hidden">
-                <div class="panel">
+                <div class="panel" style="width: 450px; max-height: 80vh; overflow-y: auto;">
                     <h2>Habit Tracker</h2>
+                    <div style="margin-bottom: 10px; text-align: center;">
+                         <input type="date" id="habit-date-picker" style="padding: 4px; border-radius: 4px; border: 1px solid #D4CFC8;">
+                    </div>
                     <ul id="habits-list">
                         <!-- Populated by JS -->
                     </ul>
-                    <div class="add-habit-form"
-                        style="margin-top: 15px; border-top: 1px solid #ccc; padding-top: 10px;">
-                        <input type="text" id="new-habit-name" placeholder="New Habit" style="margin-right: 5px;">
-                        <input type="number" id="new-habit-count" placeholder="#" min="1" value="1" title="Target Count"
-                            style="width: 40px; margin-right: 5px;">
-                        <button id="btn-add-habit" style="margin:0;">+</button>
+                    <div class="add-habit-form" style="display:flex; flex-direction:column; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid #D4CFC8;">
+                        <input type="text" id="new-habit-name" placeholder="New Habit">
+                        <select id="new-habit-type">
+                            <option value="boolean">Simple Checkbox</option>
+                            <option value="steps">Steps/Walking</option>
+                            <option value="workout">Strength Training</option>
+                            <option value="sleep">Sleep</option>
+                            <option value="productivity">Productivity (Focus Blocks)</option>
+                        </select>
+                        <input type="number" id="new-habit-count" placeholder="Target Count (e.g. 1)" min="1" value="1"
+                            title="Target Count">
+                        <button id="btn-add-habit">Add Habit</button>
                     </div>
                     <button class="close-btn" id="btn-close-habits">X</button>
+                </div>
+            </div>
+
+            <div id="goals-overlay" class="hidden">
+                <div class="panel" style="width: 500px; max-height: 80vh; overflow-y: auto;">
+                    <h2>Long-term Goals</h2>
+                    <div class="tabs" style="display:flex; gap:10px; margin-bottom:15px;">
+                        <button id="tab-goals-list" class="active">List</button>
+                        <button id="tab-goals-burndown">Burndown</button>
+                        <button id="tab-goals-calendar">Calendar</button>
+                    </div>
+                    
+                    <!-- Content panes -->
+                    <div id="goals-pane-list">
+                        <ul id="goals-list"></ul>
+                        <div class="add-goal-form" style="display:flex; flex-direction:column; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid #D4CFC8;">
+                            <input type="text" id="new-goal-name" placeholder="New Goal Name">
+                            <select id="new-goal-category">
+                                <option value="productivity">Productivity</option>
+                                <option value="exercise">Exercise</option>
+                                <option value="sleep">Sleep</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                            <div style="display:flex; gap:5px;">
+                                <input type="number" id="new-goal-estimate" placeholder="Estimated Amount (e.g. 7000)" style="flex:1;">
+                                <input type="text" id="new-goal-unit" placeholder="Unit (e.g. steps)" style="width: 80px;">
+                            </div>
+                            <select id="new-goal-habit-link">
+                                <option value="">-- Link to Habit (Optional) --</option>
+                            </select>
+                            <button id="btn-add-goal">Add Goal</button>
+                        </div>
+                    </div>
+                    
+                    <div id="goals-pane-burndown" class="hidden">
+                        <select id="burndown-goal-select" style="margin-bottom:10px; width:100%;"></select>
+                        <canvas id="burndown-chart"></canvas>
+                    </div>
+                    
+                    <div id="goals-pane-calendar" class="hidden">
+                        <select id="calendar-goal-select" style="margin-bottom:10px; width:100%;"></select>
+                        <div id="goal-calendar-grid" style="display:flex; flex-wrap:wrap; gap:4px; margin-top:10px;"></div>
+                    </div>
+
+                    <button class="close-btn" id="btn-close-goals">X</button>
                 </div>
             </div>
 
@@ -58,12 +144,17 @@
                 </div>
             </div>
 
+            <div id="cutscene-overlay" class="hidden">
+                <img id="cutscene-image" src="" alt="Cutscene">
+                <p id="cutscene-text"></p>
+            </div>
+
             <div id="player-menu" class="hidden panel">
                 <h2>What would you like to do?</h2>
                 <button id="btn-open-pomodoro">Pomodoro Timer</button>
                 <button id="btn-open-habits">Habit Tracker</button>
-                <button id="btn-reset-game"
-                    style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%); margin-top: 15px;">Reset
+                <button id="btn-open-goals">Long-term Goals</button>
+                <button id="btn-reset-game" class="btn-danger" style="margin-top: 15px;">Reset
                     Game</button>
                 <button class="close-btn" id="btn-close-menu">X</button>
             </div>

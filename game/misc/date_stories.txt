@@ -2,28 +2,64 @@
 title: FirstDate
 state: sweet
 ---
-It was a nice Italian restaurant with cloth napkins and candles and waiters, the works.
-We left at around seven, a bit late for my usual dinnertime, which is five or so, but I was able to keep it together. I wasn't as nervous as I expected to be, to be honest, which was a nice surprise. I thought I'd be sweating, my palms would be clammy, and I'd be stammering, but I guess I know them well enough at this point that it's not a huge deal.
-They wore a nice button-down and their hair was all neatly combed, and they were so sweet and charming. They held my paw under the table the whole night, and I found myself smiling at the stupid things they said. It was a pretty perfect evening.
-I think I'm in love with [roommate_name], by the way. Just in case you didn't know.
+We drive all the way south to some place near the shore that's a classic, apparently. I've heard of it before and wanted to go there for ages, but it really is a strange restaurant to go to alone. It has incredibly 'date-night-with-your-wife' vibes.
+After we sit down at a cozy booth in the corner and order our drinks, I stare across at them. It's like being in an old movie, having dinner here with someone who gives you butterflies. This place feels magical with its dark wood panelling, golden light fixtures, burgundy plush booths. It feels like we've gone back fifty years. Our waiter, a younger stallion whose coltish legs knock a little when he walks, brings us two menus, then disappears off to fetch us bread.
+"You look lovely tonight," I tell them as I flip open the menu, perusing the entrees. I haven't decided yet if I'm going to go all-in on the steak or play it safe with pasta, but I might change my mind if Avery's having the pasta. It's always fun sharing food on dates.
+"Thank you," they squeak. "I was nervous. I didn't know if, like, you were even into this type of thing."
+"A romantic dinner out at a beautiful restaurant with the cutest guy in LA? Why on earth wouldn't I be?" I shoot back. It's true. As they smile, a blush blooms on their cheeks and they stares down at the menu, their ears flat against their head. Oh, God, that's cute.
+Our waiter comes by with drinks and we order, deciding on one of each - Avery's got seafood alfredo, and I opt for steak. The waiter brings us rolls and leaves, so I reach over to tear a chunk off my roll, and dip it into my bowl of olive oil and vinegar. 
+"So, how was your day?" they ask me.
+"Boring," I reply between chews, swallowing my bread. "How was yours?"
+They shrug. "Uneventful, compared to last time."
+"Yeah," I laugh. "I was afraid to ask."
+"I'm kinda thinking I should quit the bookstore job. I just hate it, and I don't even get paid very much. It just feels pointless."
+I nod, tearing off another piece. The implication is clear: they want me to pay for their life. Maybe I kind of want that. For them to be completely dependent on me, and devoted to me, and me to them. Maybe.
+"Well, if you don't enjoy it anymore, it's probably not worth keeping," I tell them. "Got enough to pay your half of rent until you find something else?"
+Their ears flatten to the side in disappointment and I instantly feel bad. "Oh. I mean..." their voice fades.
+I set my hand on top of theirs. "Yeah, of course. Of course, babe. I've got you."
+A relieved sigh escapes them. I wonder what they think of me as. Do I seem as generous as I think I am, or am I condescending? I want to be the person who makes their life better, not worse.
+"Dumb question," I laugh, sipping my wine. "Sorry."
+"No, no, it's okay. I should really get my act together, anyway. Sorry. I'm not trying to take advantage or anything like that."
+Our conversation is interrupted by the waiter bringing us our food, which is perfectly-timed to end this topic of discussion. I grab my knife and start cutting my steak as I watch Avery eat. I wish they'd eat more, but the subject is touchy and I can't bring it up without bringing back the waterworks, I think.
+"It's really good," they say.
+"Yeah?"
+"Mmhm." They spear a piece of shrimp, then holds it up to my lips. I can't help but grin, open my mouth, close my jaws around the fork. They smile up at me bashfully, then offers me another bite. "Good?"
+"Yeah, really good."
+The rest of the night passes smoothly. We don't talk much during the meal; Avery just enjoys it and savours every bite, while I finish my plate pretty fast. The mood is cozy, though. Even if we don't have a lot to chat about, it's nice to just eat out with a good friend.
+It's nice to eat out with Avery. I don't care what we're doing. I don't care where we are.
+As we leave the restaurant and head toward the car, Avery slips their arm around my elbow and lets me lead the way through the parking lot. We stop by our car doors and face each other. There isn't anything I want more right now than to lean in and kiss them. It's like I'm a nervous teenager again.
+I clear my throat, feeling like such an awkward idiot for how quiet I suddenly got, and I fish the car keys out of my pocket.
+"Um. Thanks for having dinner with me," they say with a timid smile.
+"Thank you. This was a nice restaurant," I tell them. "Glad we went."
+And as I lean in close, their eyes widen slightly, then close. If I didn't kiss them now I'd seem cruel. Their mouth meets mine and suddenly, everything clicks. They're a perfect little kisser, gentle and polite. When their nose touches mine I feel like such a dope, getting worked up over the tiniest affection from this angel boy.
+I think I'm in love with Avery, by the way. Just in case you didn't know.
 ---
 title: FirstDate
 state: awkward
 ---
-[roommate_name] wanted to go to some fancy-ass place in West Hollywood, which was, like, fine, but it was a busy night, and all the tables were booked up. I'd had a busy week, but I'd been looking forward to seeing them. When the maître d' turned us away, they got this weird look of anxiety on their face. They apologized profusely, and it seemed like they were about to start crying. I put a paw on their shoulder and told them it was alright.
+Avery wanted to go to some fancy-ass place in West Hollywood, which was, like, fine, but it was a busy night, and all the tables were booked up. I'd had a busy week, but I'd been looking forward to seeing them. When the maître d' turned us away, they got this weird look of anxiety on their face. They apologized profusely, and it seemed like they were about to start crying. I put a paw on their shoulder and told them it was alright.
 They were so flustered and embarrassed that they'd chosen a restaurant they couldn't get into that they nearly called the whole thing off. I had to talk them down. That's when I realized how much they needed a person like me. I'm not exactly perfect, but I'm stable, and they need that.
 We ended up eating at a diner down the street, sharing a milkshake and talking for a while. It was... really nice. They're so sweet.
 ---
 title: FirstDate
 state: disaster
 ---
-We went out to a nice-ish restaurant. Nothing fancy, but it's a nice sort of place to go to with a new relationship, you know? I let them order, because it's polite. They spent a solid ten minutes staring at the menu before giving up and telling the waitress they'd have what I was having, despite me not having ordered yet. They fidgeted the entire meal, bouncing one leg under the table and pulling their ears. They were scared the whole night, and they barely spoke to me. They apologized for existing, basically.
-Then we went home, and [roommate_name] sat me down on the couch and told me how sorry they were for being so weird. I told them I don't mind it, because I'm not really that into the whole "dating" thing anyway, and I think I came off as cold.
+Avery wanted to go to a nice-ish restaurant. Nothing fancy, but it's a nice sort of place to go to with a new relationship, you know? I let them order, because it's polite. They spent a solid ten minutes staring at the menu before giving up and telling the waitress they'd have what I was having, despite me not having ordered yet. They fidgeted the entire meal, bouncing one leg under the table and pulling their ears. They were scared the whole night, and they barely spoke to me. They apologized for existing, basically.
+Then we went home, and Avery sat me down on the couch and told me how sorry they were for being so weird. I told them I don't mind it, because I'm not really that into the whole "dating" thing anyway, and I think I came off as cold.
 ---
 title: RandomDate
 state: sweet
 ---
-I hate crowds. [roommate_name] loves them. We parked on the street, which was a small miracle of luck. The walk to the museum was a sun-drenched passage through a tide of sweaty bodies. Tourists with fanny packs, kids on leashes, street performers whose talent-to-aggression ratio was skewed heavily toward the latter.
+I hate crowds. Avery loves them. We parked on the street, which was a small miracle of luck. The walk to the museum was a sun-drenched passage through a tide of sweaty bodies. Tourists with fanny packs, kids on leashes, street performers whose talent-to-aggression ratio was skewed heavily toward the latter.
 My sweet, stupid, lovely little partner, however, was in heaven. Their ears twitched at every new piece, their big blue eyes wide. They kept squeezing my hand, pointing out things I couldn't possibly care about. "Oh, look at that building, [your_name]! The cornice work is incredible!"
 "The what?" I'd ask. They'd explain. I'd nod.
 It was a nice way to spend an afternoon. They were in a good mood, and I liked seeing them like that. They often got a little morose, especially around the end of the month when rent was due, but today, they were light as a feather.
+---
+title: RandomDate
+state: sweet
+---
+We're in dire need of groceries, so we spent our morning at a farmer's market a few miles from our apartment. He took my hand while we walked through the rows of vibrant produce and flowers.
+"Let's get some of those little pears," he said, pointing to a basket of small, perfect-looking pears. He's so cute, with his little nose twitching and his ears perked up, his bright eyes taking in all the sights and sounds. I'm overwhelmed with affection for him. I'd give him anything he wants. All these pears. Anything.
+We bought fresh bread, cheese, and some pastries, filling my canvas bags with all sorts of yummy treats. 
+He looked so happy today, more relaxed than he's been in weeks. We walked to the car, and as we loaded the groceries into the trunk, I got an idea. I closed the trunk, then leaned against the car, pulling him close. I pressed my lips against his, a slow, sweet kiss. My tail twitched contentedly behind me. "How about we christen the backseat?" I whispered, only half-joking.
+He giggled, pushing me away playfully. "Someone will see," he said, and that was that. For now.

@@ -1,10 +1,11 @@
 export class GameState {
-    constructor() {
+    constructor(gameMode = 'story') {
         if (GameState.instance) {
             return GameState.instance;
         }
 
         GameState.instance = this;
+        this.gameMode = gameMode; // 'story' or 'productivity'
 
         // Runtime state (not saved)
         this.pomodoro = {
@@ -24,8 +25,19 @@ export class GameState {
         this.loadState();
     }
 
+    get storageKey() {
+        return `grapefruit_gamestate_${this.gameMode}`;
+    }
+
     loadState() {
-        const saved = localStorage.getItem('grapefruit_gamestate');
+        // Migration: move old key to story mode
+        const oldData = localStorage.getItem('grapefruit_gamestate');
+        if (oldData && !localStorage.getItem('grapefruit_gamestate_story')) {
+            localStorage.setItem('grapefruit_gamestate_story', oldData);
+            localStorage.removeItem('grapefruit_gamestate');
+        }
+
+        const saved = localStorage.getItem(this.storageKey);
         const now = new Date();
 
         if (saved) {
@@ -47,22 +59,52 @@ export class GameState {
             this.dateStories = {};
             this.habits = parsed.habits || [];
             this.completedDialogues = parsed.completedDialogues || [];
-            this.dateStories = {};
-            this.habits = parsed.habits || [];
-            this.completedDialogues = parsed.completedDialogues || [];
             this.recentDialogueIds = parsed.recentDialogueIds || [];
             this.flags = parsed.flags || {};
             this.roommateActivity = parsed.roommateActivity || null;
+            this.goals = parsed.goals || [];
+            this.personalBests = parsed.personalBests || { maxSteps: 0, maxWeight: 0, longestWorkout: 0 };
+
+            // Productivity mode state
+            this.customDialogues = parsed.customDialogues || [];
+            this.roommateCustomization = parsed.roommateCustomization || {
+                body: 'bodyF_skin1',
+                clothes: 'clothesF_default',
+                face: 'face_default',
+                hair: 'hairCurly_colour1'
+            };
+            this.playerCustomization = parsed.playerCustomization || {
+                body: 'bodyF_skin1',
+                clothes: 'clothesF_default',
+                face: 'face_default',
+                hair: 'hairStraight_colour1'
+            };
+            this.unlockedCosmetics = parsed.unlockedCosmetics || [];
+
+            this.furnitureCustomization = parsed.furnitureCustomization || {};
 
             // Check if activity expired
             this.checkRoommateActivity();
 
             console.log("Loaded State. DateHistory length:", this.dateHistory.length);
 
-            // Migration: Ensure all habits have count and maxCount
+            // Migration: Ensure all habits have count and maxCount, and history/category/type
             this.habits.forEach(h => {
                 if (typeof h.maxCount === 'undefined') h.maxCount = 1;
                 if (typeof h.count === 'undefined') h.count = h.completed ? 1 : 0;
+                if (!h.history) h.history = {};
+                if (!h.category) h.category = 'custom';
+                if (!h.type) h.type = 'boolean';
+                
+                // Migrate legacy completed state to today's history if needed
+                if (h.completed && h.lastCompleted) {
+                    const d = new Date(h.lastCompleted);
+                    // Use local date string YYYY-MM-DD
+                    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    if (!h.history[dateStr]) {
+                         h.history[dateStr] = { completed: true, value: h.count };
+                    }
+                }
             });
 
             this.lastLogin = parsed.lastLogin || Date.now();
@@ -84,15 +126,40 @@ export class GameState {
             this.roommateName = "Roommate";
             this.dateStories = {};
             this.habits = [
-                { id: 1, name: 'Drink Water', completed: false, streak: 0, lastCompleted: null, count: 0, maxCount: 6 },
-                { id: 2, name: 'Exercise', completed: false, streak: 0, lastCompleted: null, count: 0, maxCount: 1 },
-                { id: 3, name: 'Read', completed: false, streak: 0, lastCompleted: null, count: 0, maxCount: 1 }
+                { id: 1, name: 'Drink Water', completed: false, streak: 0, lastCompleted: null, count: 0, maxCount: 6, history: {}, category: 'health', type: 'boolean' },
+                { id: 2, name: 'Exercise', completed: false, streak: 0, lastCompleted: null, count: 0, maxCount: 1, history: {}, category: 'exercise', type: 'boolean' },
+                { id: 3, name: 'Read', completed: false, streak: 0, lastCompleted: null, count: 0, maxCount: 1, history: {}, category: 'productivity', type: 'boolean' }
             ];
+            this.goals = [];
+            this.personalBests = { maxSteps: 0, maxWeight: 0, longestWorkout: 0 };
             this.completedDialogues = [];
             this.recentDialogueIds = [];
             this.flags = {};
             this.roommateActivity = null;
             this.lastLogin = Date.now();
+
+            // Productivity mode state
+            this.customDialogues = [];
+            this.roommateCustomization = {
+                body: 'bodyF_skin1',
+                clothes: 'clothesF_default',
+                face: 'face_default',
+                hair: 'hairCurly_colour1'
+            };
+            this.playerCustomization = {
+                body: 'bodyF_skin1',
+                clothes: 'clothesF_default',
+                face: 'face_default',
+                hair: 'hairStraight_colour1'
+            };
+            this.unlockedCosmetics = [];
+            this.furnitureCustomization = {};
+        }
+
+        // Enforce Story mode names
+        if (this.gameMode === 'story') {
+            this.playerName = 'Charlie';
+            this.roommateName = 'Avery';
         }
 
         // ...
@@ -119,10 +186,17 @@ export class GameState {
             completedDialogues: this.completedDialogues,
             recentDialogueIds: this.recentDialogueIds,
             flags: this.flags,
-            roommateActivity: this.roommateActivity
+            roommateActivity: this.roommateActivity,
+            customDialogues: this.customDialogues,
+            roommateCustomization: this.roommateCustomization,
+            playerCustomization: this.playerCustomization,
+            unlockedCosmetics: this.unlockedCosmetics,
+            furnitureCustomization: this.furnitureCustomization,
+            goals: this.goals,
+            personalBests: this.personalBests
         };
         console.log("Saving State. DateHistory length:", this.dateHistory.length);
-        localStorage.setItem('grapefruit_gamestate', JSON.stringify(state));
+        localStorage.setItem(this.storageKey, JSON.stringify(state));
 
         // Dispatch event for UI updates
         window.dispatchEvent(new CustomEvent('gamestate-updated', { detail: this }));
@@ -154,43 +228,57 @@ export class GameState {
     }
 
     resetState() {
-        localStorage.removeItem('grapefruit_gamestate');
+        localStorage.removeItem(this.storageKey);
         this.loadState();
         window.dispatchEvent(new CustomEvent('gamestate-updated', { detail: this }));
         console.log("Game state reset.");
     }
 
-    checkDailyReset(now) {
-        const last = new Date(this.lastLogin);
+    // --- PRODUCTIVITY MODE METHODS ---
+    addCustomDialogue(text, options = []) {
+        if (this.gameMode !== 'productivity') return false;
+        const cost = 50;
+        if (!this.spendPoints(cost)) return false;
 
-        // precise day check
-        const isSameDay = now.getDate() === last.getDate() &&
-            now.getMonth() === last.getMonth() &&
-            now.getFullYear() === last.getFullYear();
+        this.customDialogues.push({
+            id: 'custom_' + Date.now(),
+            text: text,
+            options: options.length > 0 ? options : [
+                { text: 'Nice.', response: 'neutral' },
+                { text: 'Cool.', response: 'neutral' }
+            ]
+        });
+        this.saveState();
+        return true;
+    }
 
-        if (!isSameDay) {
-            console.log('Daily Reset Triggered');
-            this.habits.forEach(h => {
-                // If not completed yesterday, reset streak? 
-                // For MVP, if lastCompleted wasn't yesterday, streak = 0.
-                const yesterday = new Date(now);
-                yesterday.setDate(yesterday.getDate() - 1);
+    buyCustomization(itemId, cost = 100) {
+        if (this.gameMode !== 'productivity') return false;
+        if (this.unlockedCosmetics.includes(itemId)) return true;
+        if (!this.spendPoints(cost)) return false;
 
-                const lastComp = h.lastCompleted ? new Date(h.lastCompleted) : null;
-                const completedYesterday = lastComp &&
-                    lastComp.getDate() === yesterday.getDate() &&
-                    lastComp.getMonth() === yesterday.getMonth() &&
-                    lastComp.getFullYear() === yesterday.getFullYear();
+        this.unlockedCosmetics.push(itemId);
+        this.saveState();
+        return true;
+    }
 
-                if (!completedYesterday && !h.completed) {
-                    h.streak = 0;
-                }
-
-                h.completed = false;
-            });
-            this.lastLogin = now.getTime();
-            this.saveState();
+    equipCustomization(target, part, itemId) {
+        if (target === 'player') {
+            this.playerCustomization[part] = itemId;
+        } else if (target === 'roommate') {
+            this.roommateCustomization[part] = itemId;
         }
+        this.saveState();
+    }
+
+    equipFurniture(tileChar, assetId) {
+        if (this.gameMode !== 'productivity') return;
+        this.furnitureCustomization[tileChar] = assetId;
+        this.saveState();
+    }
+
+    static clearInstance() {
+        GameState.instance = null;
     }
 
     // --- POINTS SYSTEM ---
@@ -415,18 +503,89 @@ export class GameState {
         this.saveState();
     }
 
-    startTimer(minutes) {
+    // --- GOALS SYSTEM ---
+    addGoal(name, category, estimatedAmount, unit, linkedHabitId = null) {
+        const id = Date.now();
+        this.goals.push({
+            id,
+            name,
+            category,
+            startDate: Date.now(),
+            estimatedAmount: parseFloat(estimatedAmount) || 0,
+            currentAmount: 0,
+            unit: unit || 'iterations',
+            isCompleted: false,
+            completedCount: 0,
+            linkedHabitId
+        });
+        this.saveState();
+    }
+
+    deleteGoal(id) {
+        this.goals = this.goals.filter(g => g.id !== id);
+        this.saveState();
+    }
+
+    updateGoalProgress(id, amountToAdd, isAbsolute = false) {
+        const goal = this.goals.find(g => g.id === id);
+        if (!goal) return;
+
+        if (isAbsolute) {
+            goal.currentAmount = amountToAdd;
+        } else {
+            goal.currentAmount += amountToAdd;
+        }
+
+        // Clamp at 0 or don't clamp depending on desired behavior. Let's clamp at 0.
+        if (goal.currentAmount < 0) goal.currentAmount = 0;
+
+        this.saveState();
+    }
+
+    completeGoal(id) {
+        const goal = this.goals.find(g => g.id === id);
+        if (!goal || goal.isCompleted) return;
+
+        goal.isCompleted = true;
+        goal.completedCount += 1;
+        
+        // Calculate points based on duration/estimated amount
+        let pointsToAward = 200; // Base points for a goal
+        if (goal.estimatedAmount > 0) {
+            // Rough heuristic: assuming 30 min = 100 points
+            if (goal.unit === 'hours') pointsToAward += goal.estimatedAmount * 200;
+            if (goal.unit === 'iterations') pointsToAward += goal.estimatedAmount * 50;
+        }
+        this.addPoints(Math.floor(pointsToAward));
+        alert(`Goal "${goal.name}" completed! You earned ${Math.floor(pointsToAward)} points.`);
+        
+        this.saveState();
+    }
+
+    repeatGoal(id) {
+        const goal = this.goals.find(g => g.id === id);
+        if (!goal) return;
+
+        goal.isCompleted = false;
+        goal.currentAmount = 0;
+        goal.startDate = Date.now();
+        this.saveState();
+    }
+
+    startTimer(minutes, linkedGoalId = null) {
         if (this.pomodoro.isRunning) return;
 
-        this.pomodoro.duration = minutes * 60 * 1000;
-        // If resuming or starting fresh?
-        // Basic start fresh logic for now, unless paused
-        if (this.pomodoro.timeLeft <= 0 || this.pomodoro.timeLeft === undefined) {
-            this.pomodoro.timeLeft = this.pomodoro.duration;
+        const newDurationMs = minutes * 60 * 1000;
+
+        // If user changed the duration, or if timer ran out previously, start fresh
+        if (this.pomodoro.duration !== newDurationMs || this.pomodoro.timeLeft <= 0 || this.pomodoro.timeLeft === undefined || this.pomodoro.timeLeft === this.pomodoro.duration) {
+            this.pomodoro.duration = newDurationMs;
+            this.pomodoro.timeLeft = newDurationMs;
         }
 
         this.pomodoro.startTimestamp = Date.now();
         this.pomodoro.isRunning = true;
+        this.pomodoro.linkedGoalId = linkedGoalId;
 
         if (this.pomodoro.timerId) clearInterval(this.pomodoro.timerId);
 
@@ -445,8 +604,11 @@ export class GameState {
         window.dispatchEvent(new CustomEvent('pomodoro-updated', { detail: this.pomodoro }));
     }
 
-    resetTimer() {
+    resetTimer(newDurationMs = null) {
         this.pauseTimer();
+        if (newDurationMs) {
+            this.pomodoro.duration = newDurationMs;
+        }
         this.pomodoro.timeLeft = this.pomodoro.duration;
         window.dispatchEvent(new CustomEvent('pomodoro-updated', { detail: this.pomodoro }));
     }
@@ -467,22 +629,47 @@ export class GameState {
         this.pomodoro.timeLeft = 0;
 
         // Calculate points
-        // duration is in ms
         const minutes = this.pomodoro.duration / 1000 / 60;
+        this.recordPomodoroSession(minutes, this.pomodoro.linkedGoalId);
+    }
+    
+    logPomodoro(minutes, linkedGoalId = null) {
+        // Manual log entry
+        if (!minutes || isNaN(minutes) || minutes <= 0) return;
+        this.recordPomodoroSession(minutes, linkedGoalId);
+    }
+    
+    recordPomodoroSession(minutes, linkedGoalId) {
+        // Points calculation Rule: ~3.33 points per minute (100 points per 30 mins)
+        const pointsEarned = Math.floor(minutes * (100 / 30));
 
-        // Rule: Minimum 30 mins for points
-        if (minutes >= 30) {
-            // 100 points per 30 mins
-            const pointsEarned = Math.floor(minutes / 30) * 100;
+        let msg = '';
+        if (pointsEarned > 0) {
             this.addPoints(pointsEarned);
-            alert(`Pomodoro complete! You earned ${pointsEarned} points.`);
+            msg = `Pomodoro complete! You earned ${pointsEarned} points.`;
         } else {
-            alert('Pomodoro complete! (No points for sessions under 30m)');
+            msg = 'Pomodoro complete!';
         }
+        
+        // Auto-update linked goal progress if applicable
+        if (linkedGoalId) {
+             const goal = this.goals.find(g => g.id === linkedGoalId);
+             if (goal) {
+                 // Assume goal's unit might be minutes, hours, or blocks
+                 let amountToAdd = 1; // Default to 1 block
+                 if (goal.unit.toLowerCase().includes('min')) amountToAdd = minutes;
+                 else if (goal.unit.toLowerCase().includes('hour') || goal.unit.toLowerCase().includes('hr')) amountToAdd = minutes / 60;
+                 
+                 this.updateGoalProgress(linkedGoalId, amountToAdd);
+                 msg += ` Linked goal "${goal.name}" updated (+${amountToAdd.toFixed(1)} ${goal.unit}).`;
+             }
+        }
+        
+        alert(msg);
     }
 
     // --- HABIT SYSTEM ---
-    addHabit(name, maxCount = 1) {
+    addHabit(name, maxCount = 1, category = 'custom', type = 'boolean') {
         const id = Date.now(); // Simple ID generation
         this.habits.push({
             id,
@@ -491,7 +678,10 @@ export class GameState {
             streak: 0,
             lastCompleted: null,
             count: 0,
-            maxCount: parseInt(maxCount) || 1
+            maxCount: parseInt(maxCount) || 1,
+            history: {},
+            category,
+            type
         });
         this.saveState();
     }
@@ -508,36 +698,87 @@ export class GameState {
     // Or are they independent? "Check sub-checkboxes for each glass".
     // Let's assume they are just a counter visualization.
     updateHabitProgress(id, newCount) {
+        const d = new Date();
+        const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        this.updateHabitProgressForDate(id, todayStr, newCount);
+    }
+    
+    updateHabitProgressForDate(id, dateStr, newCount, extraData = {}) {
         const habit = this.habits.find(h => h.id === id);
         if (!habit) return;
 
+        // Ensure history object exists
+        if (!habit.history) habit.history = {};
+
         // Clamp count
         newCount = Math.max(0, Math.min(newCount, habit.maxCount));
+        
+        // Find existing record for this date
+        const existingRecord = habit.history[dateStr] || { completed: false, value: 0 };
+        const wasCompleted = existingRecord.completed;
+        const isNowCompleted = newCount >= habit.maxCount;
 
-        const wasCompleted = habit.completed;
-        habit.count = newCount;
+        // Apply new history state
+        habit.history[dateStr] = { 
+            completed: isNowCompleted, 
+            value: newCount, 
+            ...extraData // Allow passing steps, weight, duration, etc.
+        };
 
-        // Check completion
-        const isNowCompleted = habit.count >= habit.maxCount;
-
-        if (isNowCompleted && !wasCompleted) {
-            // Mark as complete
-            habit.completed = true;
-            habit.streak++;
-            habit.lastCompleted = Date.now();
-
-            // Calculate points: Base 50 + (Streak * 10)
-            const bonus = Math.min(habit.streak * 10, 100);
-            this.addPoints(50 + bonus);
-        } else if (!isNowCompleted && wasCompleted) {
-            // Undo completion
-            habit.completed = false;
-            // Revert streak
-            if (habit.streak > 0) habit.streak--;
-
-            // Refund points
-            const bonus = Math.min((habit.streak + 1) * 10, 100);
-            this.addPoints(-(50 + bonus));
+        // If updating today's date, also update the high-level cache for UI convenience
+        const d = new Date();
+        const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        if (dateStr === todayStr) {
+            habit.count = newCount;
+            habit.completed = isNowCompleted;
+            if (isNowCompleted && !wasCompleted) {
+                habit.streak++;
+                habit.lastCompleted = Date.now();
+                const bonus = Math.min(habit.streak * 10, 100);
+                this.addPoints(50 + bonus);
+            } else if (!isNowCompleted && wasCompleted) {
+                 if (habit.streak > 0) habit.streak--;
+                 const bonus = Math.min((habit.streak + 1) * 10, 100);
+                 this.addPoints(-(50 + bonus));
+            }
+        }
+        
+        // Personal Best Updates (e.g., max steps, max weight)
+        if (extraData.steps && extraData.steps > this.personalBests.maxSteps) {
+            this.personalBests.maxSteps = extraData.steps;
+            this.addPoints(100);
+            alert(`New Personal Best! ${extraData.steps} steps! (+100 pts)`);
+        }
+        if (extraData.weight && extraData.weight > this.personalBests.maxWeight) {
+            this.personalBests.maxWeight = extraData.weight;
+            this.addPoints(100);
+            alert(`New Personal Best! ${extraData.weight} weight! (+100 pts)`);
+        }
+        if (extraData.duration && extraData.duration > this.personalBests.longestWorkout) {
+            this.personalBests.longestWorkout = extraData.duration;
+            this.addPoints(100);
+            alert(`New Personal Best! ${extraData.duration} min workout! (+100 pts)`);
+        }
+        
+        // Check for linked Long Term Goals
+        // If a linked goal exists, we update its progress. Wait, we should only add the *difference* in progress for the goal.
+        const diff = newCount - existingRecord.value;
+        if (diff !== 0) {
+            const linkedGoal = this.goals.find(g => g.linkedHabitId === habit.id && !g.isCompleted);
+            if (linkedGoal) {
+                // If it's a steps habit, maybe the goal is steps? 
+                // Or if it's a boolean habit, completing it means +1 iteration.
+                // It's safest to just add `diff` as the progress unit.
+                // For steps, diff = +steps. For boolean, diff = +1.
+                let addedAmount = diff;
+                if (habit.type === 'steps' && extraData.steps) {
+                    // diff is just the count of `1`, but steps is numeric. This gets tricky. 
+                    // Let's assume progress is tied to `extraData.value` vs raw `count` if it's specialized.
+                }
+                
+                // Keep it simple: diff is the change in the checkbox count.
+                this.updateGoalProgress(linkedGoal.id, addedAmount);
+            }
         }
 
         this.saveState();
