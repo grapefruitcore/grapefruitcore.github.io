@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Isometric Room Engine</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- UI Layer -->
+        <div id="ui-layer">
+            <div id="hud">
+                <div class="points-display">Points: <span id="points-value">0</span></div>
+            </div>
+
+            <div id="pomodoro-overlay" class="hidden">
+                <div class="panel">
+                    <h2>Pomodoro Timer</h2>
+                    <div id="timer-display">25:00</div>
+                    <div class="controls">
+                        <button id="btn-start-timer">Start (30m)</button>
+                        <button id="btn-pause-timer">Pause</button>
+                        <button id="btn-reset-timer">Reset</button>
+                    </div>
+                    <button class="close-btn" id="btn-close-pomodoro">X</button>
+                </div>
+            </div>
+
+            <div id="habits-overlay" class="hidden">
+                <div class="panel">
+                    <h2>Habit Tracker</h2>
+                    <ul id="habits-list">
+                        <!-- Populated by JS -->
+                    </ul>
+                    <div class="add-habit-form"
+                        style="margin-top: 15px; border-top: 1px solid #ccc; padding-top: 10px;">
+                        <input type="text" id="new-habit-name" placeholder="New Habit" style="margin-right: 5px;">
+                        <input type="number" id="new-habit-count" placeholder="#" min="1" value="1" title="Target Count"
+                            style="width: 40px; margin-right: 5px;">
+                        <button id="btn-add-habit" style="margin:0;">+</button>
+                    </div>
+                    <button class="close-btn" id="btn-close-habits">X</button>
+                </div>
+            </div>
+
+            <div id="dialogue-overlay" class="hidden">
+                <img id="dialogue-portrait" src="./assets/roommate_dialogue.png" alt="Roommate" class="hidden">
+                <div class="dialogue-box">
+                    <h3 id="dialogue-speaker">Roommate</h3>
+                    <p id="dialogue-text">...</p>
+                    <div id="dialogue-options"></div>
+                    <button id="btn-next-dialogue">Next</button>
+                </div>
+            </div>
+
+            <div id="player-menu" class="hidden panel">
+                <h2>What would you like to do?</h2>
+                <button id="btn-open-pomodoro">Pomodoro Timer</button>
+                <button id="btn-open-habits">Habit Tracker</button>
+                <button id="btn-reset-game"
+                    style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%); margin-top: 15px;">Reset
+                    Game</button>
+                <button class="close-btn" id="btn-close-menu">X</button>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="main.js"></script>
+</body>
+
+</html>
