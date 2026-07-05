@@ -143,9 +143,9 @@ def init_db():
             db.commit()
 
         # Check if default community exists
-        default_comm = db.query(Community).filter_by(name="Underground Music").first()
+        default_comm = db.query(Community).filter_by(name="the scene").first()
         if not default_comm:
-            default_comm = Community(name="Underground Music")
+            default_comm = Community(name="the scene")
             db.add(default_comm)
             db.commit()
             db.refresh(default_comm)

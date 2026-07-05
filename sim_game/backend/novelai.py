@@ -376,7 +376,15 @@ async def generate_dm_reply(char_name: str, char_handle: str, char_bio: str, cha
             "text": "Uh, sorry, my signal cut out for a second. What were we saying?"
         }
 
-async def generate_thread_reply(char_name: str, char_handle: str, char_bio: str, tweet_history: str, thread_history: list) -> str:
+async def generate_thread_reply(
+    char_name: str, 
+    char_handle: str, 
+    char_bio: str, 
+    tweet_history: str, 
+    thread_history: list,
+    replying_to_user: bool = False,
+    user_handle: str = "@playerone"
+) -> str:
     """
     Generates a single character's reply to an existing timeline thread, incorporating world context.
     thread_history is a list of dicts: [{'handle': str, 'content': str}]
@@ -408,7 +416,12 @@ async def generate_thread_reply(char_name: str, char_handle: str, char_bio: str,
     for post in thread_history:
         history_str += f"{post['handle']}: {post['content']}\n"
         
-    instruction = f"{{Below is an online social media thread. Write a reply from {char_name} ({char_handle}) reacting to the conversation. Keep it short, conversational, and in character.}}"
+    if replying_to_user:
+        instruction = f"{{Below is an online social media thread. Write a reply from {char_name} ({char_handle}) directly replying to the user ({user_handle}). Start your reply by mentioning {user_handle}. Keep it short, conversational, and in character.}}"
+        prefill = f"{char_handle}: {user_handle}"
+    else:
+        instruction = f"{{Below is an online social media thread. Write a reply from {char_name} ({char_handle}) reacting to the conversation. Keep it short, conversational, and in character.}}"
+        prefill = f"{char_handle}:"
     
     prompt = (
         f"{wc_prefix}"
@@ -421,13 +434,20 @@ async def generate_thread_reply(char_name: str, char_handle: str, char_bio: str,
         f"{tweet_history}\n"
         f"Thread:\n"
         f"{history_str}"
-        f"{char_handle}:"
+        f"{prefill}"
     )
     
     try:
         raw_output = await generate_completion(prompt, max_tokens=80, temperature=0.8, stop=["\n@", "\n----"])
-        return raw_output.strip()
+        reply = raw_output.strip()
+        if replying_to_user:
+            # Check if the generated output already starts with or includes the handle to avoid repetition
+            if not reply.startswith(user_handle) and not reply.startswith("@"):
+                reply = f"{user_handle} {reply}"
+        return reply
     except Exception:
+        if replying_to_user:
+            return f"{user_handle} wait, really?"
         return "wait, really?"
 
 async def generate_gossip_headline(char_a_name: str, char_b_name: str, recent_event_summary: str = "") -> str:

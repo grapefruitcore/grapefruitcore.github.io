@@ -75,7 +75,9 @@ const btnTriggerSocialEvent = document.getElementById('btn-trigger-social-event'
 
 // HELPER: Format Timestamp
 function formatTime(isoString) {
+    if (!isoString) return '';
     const date = new Date(isoString);
+    if (isNaN(date.getTime())) return '';
     let hours = date.getHours();
     const minutes = date.getMinutes().toString().padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
@@ -121,8 +123,13 @@ function setupNavigation() {
 }
 
 function switchView(viewId) {
-    views.forEach(v => v.classList.remove('active'));
-    document.getElementById(viewId).classList.add('active');
+    const allViews = document.querySelectorAll('.content-view');
+    allViews.forEach(v => v.classList.remove('active'));
+    
+    const target = document.getElementById(viewId);
+    if (target) {
+        target.classList.add('active');
+    }
     state.currentView = viewId;
 
     if (viewId === 'view-timeline') {
@@ -956,7 +963,20 @@ async function openCharacterProfile(charId) {
     
     feedEl.innerHTML = '<div class="loading-placeholder">Loading posts...</div>';
     
-    const char = state.characters.find(c => c.id === charId);
+    let char = null;
+    try {
+        const charRes = await fetch(`/api/characters/${charId}`);
+        if (charRes.ok) {
+            char = await charRes.json();
+        }
+    } catch (err) {
+        console.error("Error fetching character metadata:", err);
+    }
+    
+    if (!char) {
+        char = state.characters.find(c => c.id === charId);
+    }
+    
     if (!char) {
         alert("Character not found");
         return;
@@ -1135,7 +1155,7 @@ function setupEventListeners() {
     document.getElementById('tab-community-posts').addEventListener('click', (e) => {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         e.target.classList.add('active');
-        // Seeded Underground Music community ID is 1
+        // Seeded the scene community ID is 1
         loadTimeline(1);
     });
 

@@ -73,24 +73,52 @@ async def run_thread_cascade(db_session_factory, parent_post_id: int, user_reply
                     "content": post.content
                 })
         
+        # Find the character whom the user is replying to (the author of the parent post)
+        from backend.database import Post
+        parent_post = db.query(Post).filter_by(id=parent_post_id).first()
+        target_char = None
+        if parent_post:
+            target_char = db.query(Character).filter(
+                Character.id == parent_post.author_id,
+                Character.is_user == False,
+                Character.handle != "@popcraze"
+            ).first()
+
         # Decide how many characters reply (between 1 and 3)
         num_replies = random.randint(1, 3)
         
-        # Pick characters who are not the user, and haven't replied in the last 2 posts to keep it dynamic
+        # Pick other characters who are not the user, and haven't replied in the last 2 posts to keep it dynamic
         all_chars = crud.get_all_characters(db, exclude_user=True)
-        # Exclude Pop Craze gossip bot from regular cascades
         available_chars = [c for c in all_chars if c.handle != "@popcraze"]
         
-        if not available_chars:
-            return
+        # If target_char is valid, place them first, then fill rest
+        selected_chars = []
+        if target_char:
+            selected_chars.append(target_char)
+            available_chars = [c for c in available_chars if c.id != target_char.id]
             
-        # Shuffle to pick randomly
+        # Shuffle remaining characters
         random.shuffle(available_chars)
-        selected_chars = available_chars[:num_replies]
+        
+        # Fill remaining slots up to num_replies
+        remaining_needed = num_replies - len(selected_chars)
+        if remaining_needed > 0:
+            selected_chars.extend(available_chars[:remaining_needed])
+            
+        # Get the user's handle
+        user_char = db.query(Character).filter_by(is_user=True).first()
+        user_handle = user_char.handle if user_char else "@playerone"
         
         for char in selected_chars:
             # Simulate "People are typing..." indicator by sleeping
             await asyncio.sleep(random.uniform(2.0, 4.0))
+            
+            # Check if this reply is replying to a user's post
+            replying_to_user = False
+            if thread_history:
+                last_post = thread_history[-1]
+                if last_post["handle"] == user_handle:
+                    replying_to_user = True
             
             formatted_history = novelai.format_tweet_history(char.name, char.handle, char.tweet_history or "")
             # Generate reply
@@ -99,8 +127,18 @@ async def run_thread_cascade(db_session_factory, parent_post_id: int, user_reply
                 char_handle=char.handle,
                 char_bio=char.bio,
                 tweet_history=formatted_history,
-                thread_history=thread_history
+                thread_history=thread_history,
+                replying_to_user=replying_to_user,
+                user_handle=user_handle
             )
+            
+            # Double-check that it starts with the mention if replying to user
+            if replying_to_user:
+                reply_stripped = reply_text.strip()
+                if not reply_stripped.startswith("@"):
+                    reply_text = f"{user_handle} {reply_stripped}"
+                elif not reply_stripped.startswith(user_handle):
+                    reply_text = f"{user_handle} {reply_stripped}"
             
             # Save reply to database
             new_reply = crud.create_post(

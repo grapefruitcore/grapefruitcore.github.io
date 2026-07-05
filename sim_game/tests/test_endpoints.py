@@ -63,7 +63,7 @@ def client():
 
     
     # Seed a community
-    comm = Community(name="Underground Music")
+    comm = Community(name="the scene")
     db.add(comm)
     db.commit()
     db.close()
@@ -119,7 +119,7 @@ def test_read_communities(client):
     assert response.status_code == 200
     comms = response.json()
     assert len(comms) == 1
-    assert comms[0]["name"] == "Underground Music"
+    assert comms[0]["name"] == "the scene"
 
 def test_get_user_profile(client):
     response = client.get("/api/user/profile")
