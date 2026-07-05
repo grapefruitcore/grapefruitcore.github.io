@@ -665,6 +665,7 @@ select {
     display: flex;
     flex-direction: column;
     height: 100%;
+    min-height: 0;
 }
 
 .chat-placeholder-state {
@@ -693,6 +694,7 @@ select {
     display: flex;
     flex-direction: column;
     height: 100%;
+    min-height: 0;
 }
 
 .chat-header {
