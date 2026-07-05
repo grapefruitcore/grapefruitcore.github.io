@@ -1562,34 +1562,39 @@ function setupEventListeners() {
         });
     }
 
-    // Undo Last Action Event Listener
-    if (btnUndoAction) {
-        btnUndoAction.addEventListener('click', async () => {
-            if (confirm("Are you sure you want to revert your last logged action? Score changes and any posts or DMs created by that action will be deleted.")) {
-                try {
-                    const res = await fetch('/api/activity_log/undo', { method: 'POST' });
-                    if (res.ok) {
-                        const data = await res.json();
-                        alert(`Undid last action: ${data.undone_type}`);
-                        await loadCharacters();
-                        if (state.currentView === 'view-activity-log') {
-                            await loadActivityLog();
-                        } else if (state.currentView === 'view-timeline') {
-                            const currentTabActiveComm = document.getElementById('tab-community-posts').classList.contains('active') ? 1 : null;
-                            await loadTimeline(currentTabActiveComm);
-                        } else if (state.currentView === 'view-dms' && state.activeChatCharId) {
-                            await loadChatHistory();
+    // Undo Last Action Event Listeners
+    const btnUndoActionSidebar = document.getElementById('btn-undo-action-sidebar');
+    const undoButtons = [btnUndoAction, btnUndoActionSidebar];
+    
+    undoButtons.forEach(btn => {
+        if (btn) {
+            btn.addEventListener('click', async () => {
+                if (confirm("Are you sure you want to revert your last logged action? Score changes and any posts or DMs created by that action will be deleted.")) {
+                    try {
+                        const res = await fetch('/api/activity_log/undo', { method: 'POST' });
+                        if (res.ok) {
+                            const data = await res.json();
+                            alert(`Undid last action: ${data.undone_type}`);
+                            await loadCharacters();
+                            if (state.currentView === 'view-activity-log') {
+                                await loadActivityLog();
+                            } else if (state.currentView === 'view-timeline') {
+                                const currentTabActiveComm = document.getElementById('tab-community-posts').classList.contains('active') ? 1 : null;
+                                await loadTimeline(currentTabActiveComm);
+                            } else if (state.currentView === 'view-dms' && state.activeChatCharId) {
+                                await loadChatHistory();
+                            }
+                        } else {
+                            const err = await res.json();
+                            alert(err.detail || "Could not undo last action.");
                         }
-                    } else {
-                        const err = await res.json();
-                        alert(err.detail || "Could not undo last action.");
+                    } catch (err) {
+                        console.error("Error undoing last action:", err);
                     }
-                } catch (err) {
-                    console.error("Error undoing last action:", err);
                 }
-            }
-        });
-    }
+            });
+        }
+    });
 
     // Wipe Non-Mutuals Event Listener
     const btnWipeNonMutuals = document.getElementById('btn-wipe-non-mutuals');
