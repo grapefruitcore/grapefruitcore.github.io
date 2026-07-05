@@ -180,7 +180,18 @@ def init_db():
                 following=True,
                 avatar_path="/static/daine.png",
                 avatar_alt_text="A moody close-up photo of Daine, soft flash lighting, cool-toned retro filter.",
-                tweet_history="daine @notdaine\n* 03:15 AM\nwriting songs on the bedroom floor at 3am is a lifestyle. new demos soon.\n----\ndaine @notdaine\n* 01:24 PM\ntired of the algorithm hiding my music. real support is in the DMs.\n----\ndaine @notdaine\n* 08:45 PM\nmelancholy and 808s. that's the whole album.\n----\n"
+                tweet_history=(
+                    "Spread the love spread the vibe\n"
+                    "i cant believe my lore I was 19 opening for charli xcx\n"
+                    "YES I’M AN INDUSTRY PLANT WHO CARES\n"
+                    "SYDNEY MY set IS 8PM TONIGHT SEE YOU SOON\n"
+                    "can you guess the feature on my unreleased track\n"
+                    "i am just trying to make refreshing music. that’s the whole goal. because that’s what i want to listen to\n"
+                    "Flaxseed meal changed my life\n"
+                    "My ex used to say i’m. like drake as a female\n"
+                    "gonna start thirst trapping and also being more machiavellian. as a treat for being a sweetie\n"
+                    "around this time in 2024 i was having a seizure in hospital after trying to take my life. cut to 2026 and ive started my first album roll out and it’s so much brighter & better than i could’ve expected.🪷 it happens like magic🪷do not give up🍀"
+                )
             )
             db.add(daine)
             db.commit()
@@ -209,7 +220,7 @@ def init_db():
                 following=True,
                 avatar_path="/static/popcraze.png",
                 avatar_alt_text="A shiny neon pink camera lens icon with flash sparks",
-                tweet_history="Pop Craze Gossip @popcraze\n* 04:00 PM\nEXCLUSIVE: Rumors are flying in the underground scene! Who was spotted leaving the club together last night?\n----\n"
+                tweet_history="EXCLUSIVE: Rumors are flying in the underground scene! Who was spotted leaving the club together last night?"
             )
             db.add(pop_craze)
             db.commit()
@@ -222,7 +233,19 @@ def init_db():
                 "bio": "Darcy is a 31 year old artist, songwriter, singer and producer, originally from Melbourne, but now based in LA. He makes solo music that combines emo and trance influences, and he is in a band called Car Underwater. Darcy has a storied past; he's sensitive and grew up in an abusive household. However, since getting sober from a long-running drug addiction in his twenties, he's been doing a lot better. Darcy is chronically online but not as much of an attention-seeker now. Friend and frequent collaborator with Daine and Ninajirachi.",
                 "avatar_path": "/static/default_npc.png",
                 "avatar_alt_text": "Close-up of Darcy looking creative",
-                "tweet_history": "Darcy @darcyebaylis\n* 02:15 AM\nnew demo mixing Emo with Trance synthesizers, what do we think?\n----\n"
+                "tweet_history": (
+                    "we are all just stems in this beautiful project file called Life\n"
+                    "it feels like im a cartoon ant travelling the world with all of my earthly possessions fitting into a single suitcase rn\n"
+                    "the best part of being on tour? getting to discover new styles of Spaghetti Bolognaise every damn day\n"
+                    "you’re 15 years old. you spent the weekend busking so you could afford a Laneway ticket. You really want to see Washed Out but they clash with SBTRKT. You have a fresh Ben Sherman buttoned all the way up and a new pair of Cheap Mondays. There’s no school on Monday. Life is good\n"
+                    "Even when it gets hard it’s so fun to be me\n"
+                    "Define the Great Line by Underoath had such a profound impact on me as a kid that despite coming from an atheist family I briefly converted to Christianity, asked my mum for a bible for my birthday and started attending church with a Christian kid at my school\n"
+                    "you met me at a very Darcy time in my life\n"
+                    "emo music and all its associated forms has altered my life in ways I never thought possible\n"
+                    "the realest thing about me is I gaf\n"
+                    "the best art is made by people who are willing to embarrass themselves\n"
+                    "i’m an addict for dramatics i confuse the two for love"
+                )
             },
             {
                 "name": "Caroline Calloway",
@@ -230,7 +253,16 @@ def init_db():
                 "bio": "Writer, scammer, and terrible friend. Dated Darcy.",
                 "avatar_path": "/static/default_npc.png",
                 "avatar_alt_text": "Caroline looking artistic in a museum",
-                "tweet_history": "Caroline Calloway @carolinecalloway\n* 11:15 AM\nart is scamming people into feeling something. buy my paintings.\n----\n"
+                "tweet_history": (
+                    "I'm a 34 year old teenage girl in NYC. And yes this rage bait btw\n"
+                    "It's important to include a dead one when you put flowers in your hair because that's how people know they're real\n"
+                    "Wearing an outfit today that my ex would've hated. I got this feeling on a summer day that I don’t miss being punished for being myself AT ALL\n"
+                    "He’d call it being “spacious, gracious, and gentle” and the metric of whether or not I had succeeded at each social event was how often he had heard my voice. Make no noise that night? Good mood when we were finally alone. Cuddles and praise and security. Laugh or yap or god forbid get too excited about something and do it in a way that draws attention to myself? Icy, surly, silent treatment that would last for DAYS. But the real villain here is myself because I stayed until he dumped **ME** jfc still unpacking this\n"
+                    "At the stage in the break up where I can't use make up or I'll cry it all off. Been a solid three weeks since I last used mascara\n"
+                    "Did someone say gold medals? Yeah. I did. Because I’m in total control of this narrative flow and I want to make story dumps “a thing.”\n"
+                    "I’ve been in a total love bubble at the beach all weekend with nary a thought in my pretty little head about whether or not my phone was charged or what happens after Monday. Now it’s fucking Monday. HELLO.\n"
+                    "OMG GUYS I LITERALLY FUCKED THE UNITED HEALTHCARE CEO ASSASSIN"
+                )
             },
             {
                 "name": "Christina",
@@ -238,7 +270,13 @@ def init_db():
                 "bio": "LA visual creator. Active in right-wing online communities. Dated Darcy.",
                 "avatar_path": "/static/default_npc.png",
                 "avatar_alt_text": "Christina in a cowgirl hat holding a vintage camera",
-                "tweet_history": "Christina @avgcowgirl\n* 04:30 PM\nanalogue grain is the only way to save visual media from the bots.\n----\n"
+                "tweet_history": (
+                    "you can't break a man's will with beautiful pink p$ssy\n"
+                    "I need to stop dating liberals!!\n"
+                    "I change my entire personality every single day\n"
+                    "whores for Christ\n"
+                    "why are all men gay?"
+                )
             },
             {
                 "name": "Ninajirachi",
@@ -246,7 +284,15 @@ def init_db():
                 "bio": "Australian electronic producer, songwriter, and DJ. Friend and frequent collaborator with fellow Australian artists Daine and Darcy.",
                 "avatar_path": "/static/default_npc.png",
                 "avatar_alt_text": "Nina in neon lights behind a turntable",
-                "tweet_history": "Ninajirachi @ninajirachi\n* 01:45 AM\ncollaborating with daine is always a vibe, wait until you hear the synth loop we just cooked.\n----\n"
+                "tweet_history": (
+                    "australia tour starts this week which songs am i playing .   .    .       .         .\n"
+                    "24 hours in london thank you meltdown festival :D\n"
+                    "the power just went out mid set lol but everyone kept singing (╥ ᴗ ╥)\n"
+                    "always at the desk in the dark xx\n"
+                    "my friends are my heroes and my heroes are my friends 😭😭😭😭💙💙💙💙\n"
+                    "i want to sing live but its gonna sound Bad\n"
+                    "i’ve never been to coachella"
+                )
             },
             {
                 "name": "Zo",
@@ -254,7 +300,7 @@ def init_db():
                 "bio": "Alternative shoegaze artist and music producer based in LA. In a band called Car Underwater with Darcy and Max.",
                 "avatar_path": "/static/default_npc.png",
                 "avatar_alt_text": "Zo in a fuzzy sweater standing in a dark room",
-                "tweet_history": "Zo @quannnic\n* 10:20 PM\nrehearsing with darcy for the LA gig. our new track is loud shoegaze trance.\n----\n"
+                "tweet_history": "rehearsing with darcy for the LA gig. our new track is loud shoegaze trance."
             },
             {
                 "name": "Max",
@@ -262,7 +308,11 @@ def init_db():
                 "bio": "LA-based visual designer, photographer, and experimental musician. In a band called Car Underwater with Darcy and Zo.",
                 "avatar_path": "/static/default_npc.png",
                 "avatar_alt_text": "Max behind a camera flash, motion blur filter",
-                "tweet_history": "Max @photgraphicmemory\n* 08:12 PM\nvisuals for our band Car Underwater are done. Darcy's vocals on track 4 are insane.\n----\n"
+                "tweet_history": (
+                    "I could never trust a gluten free mf. fym you allergic to the bread?\n"
+                    "Angelina Jolie as that baddie fish in Shark Tale 😮‍💨\n"
+                    "Writing a new song on acoustic today"
+                )
             }
         ]
 

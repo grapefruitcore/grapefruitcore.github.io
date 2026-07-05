@@ -19,3 +19,6 @@ tests/.pytest_cache/
 # Local configuration
 .vscode/
 .idea/
+
+# Scratch
+*.txt

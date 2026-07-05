@@ -202,6 +202,41 @@ def parse_dm_response(text: str) -> dict:
         "text": message
     }
 
+def format_tweet_history(name: str, handle: str, tweet_history: str) -> str:
+    """
+    Formats a raw tweet history string (one tweet per line) into the standard structured format:
+    Name @handle
+    * 00:00 AM
+    Tweet content
+    ----
+    """
+    if not tweet_history:
+        return ""
+    
+    # Split by newlines and clean
+    lines = [line.strip() for line in tweet_history.split("\n") if line.strip()]
+    formatted_posts = []
+    
+    # Generate some slightly varied times to make it look realistic
+    hours = [3, 8, 11, 2, 6, 10]
+    minutes = [15, 30, 45, 12, 20, 55]
+    meridians = ["AM", "PM", "AM", "PM", "AM", "PM"]
+    
+    for idx, content in enumerate(lines):
+        # Skip separator lines or headers if they got in there
+        if content == "----" or content == "====" or content.startswith("*@"):
+            continue
+            
+        h = hours[idx % len(hours)]
+        m = minutes[idx % len(minutes)]
+        mer = meridians[idx % len(meridians)]
+        time_str = f"{h:02d}:{m:02d} {mer}"
+        
+        # Format name and handle on the same line
+        formatted_posts.append(f"{name} {handle}\n* {time_str}\n{content}\n----")
+        
+    return "\n".join(formatted_posts) + "\n"
+
 async def generate_timeline_posts(community_name: str, seed_history: str = "") -> list:
     """
     Generates new posts for a specific community. Incorporates world context.

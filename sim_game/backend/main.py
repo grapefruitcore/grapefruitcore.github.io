@@ -92,12 +92,13 @@ async def run_thread_cascade(db_session_factory, parent_post_id: int, user_reply
             # Simulate "People are typing..." indicator by sleeping
             await asyncio.sleep(random.uniform(2.0, 4.0))
             
+            formatted_history = novelai.format_tweet_history(char.name, char.handle, char.tweet_history or "")
             # Generate reply
             reply_text = await novelai.generate_thread_reply(
                 char_name=char.name,
                 char_handle=char.handle,
                 char_bio=char.bio,
-                tweet_history=char.tweet_history or "",
+                tweet_history=formatted_history,
                 thread_history=thread_history
             )
             
@@ -504,8 +505,9 @@ def get_character_posts(character_id: int, db: Session = Depends(get_db)):
         })
         
     if char.tweet_history:
-        from backend.novelai import parse_generated_posts
-        history_posts = parse_generated_posts(char.tweet_history)
+        from backend.novelai import parse_generated_posts, format_tweet_history
+        formatted_history = format_tweet_history(char.name, char.handle, char.tweet_history)
+        history_posts = parse_generated_posts(formatted_history)
         for idx, hp in enumerate(history_posts):
             fake_time = datetime.datetime.now() - datetime.timedelta(days=idx+1)
             posts_list.append({
@@ -661,13 +663,14 @@ async def send_dm_message(character_id: int, payload: DMCreate, background_tasks
             "content": msg.content
         })
         
+    formatted_history = novelai.format_tweet_history(char.name, char.handle, char.tweet_history or "")
     # Call NovelAI to generate response
     ai_reply = await novelai.generate_dm_reply(
         char_name=char.name,
         char_handle=char.handle,
         char_bio=char.bio,
         char_avatar_alt=char.avatar_alt_text or "",
-        tweet_history=char.tweet_history or "",
+        tweet_history=formatted_history,
         message_history=msg_history
     )
     
@@ -747,7 +750,7 @@ async def generate_timeline(db: Session = Depends(get_db)):
     seed_history = ""
     for char in all_chars:
         if char.tweet_history:
-            seed_history += char.tweet_history + "\n"
+            seed_history += novelai.format_tweet_history(char.name, char.handle, char.tweet_history)
             
     # Generate timeline posts
     generated_posts = await novelai.generate_timeline_posts(
