@@ -1747,8 +1747,9 @@ async function loadDebugLogs() {
                 `;
                 
                 // Safe content injection to prevent HTML injection XSS issues
-                card.querySelector('.log-details pre:first-of-type').textContent = log.prompt;
-                card.querySelector('.log-details pre:last-of-type').textContent = log.response;
+                const preElements = card.querySelectorAll('.log-details pre');
+                preElements[0].textContent = log.prompt;
+                preElements[1].textContent = log.response;
                 
                 // Toggle accordion details
                 card.addEventListener('click', (e) => {
