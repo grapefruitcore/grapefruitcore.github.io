@@ -440,6 +440,13 @@ def get_character_relationship_context(db: Session, character_id: int) -> str:
     else:
         parts.append("Recent Direct Message (DM) History: None.")
         
+    # 5. Relationships with other characters in the community
+    social_context = get_character_social_context(db, character_id)
+    if social_context:
+        parts.append(f"Relationships with other characters: {social_context}")
+    else:
+        parts.append("Relationships with other characters: None.")
+        
     return "[ RELATIONSHIP & CONVERSATION CONTEXT ]\n" + "\n".join(parts) + "\n"
 
 
