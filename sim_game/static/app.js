@@ -1619,6 +1619,58 @@ function setupEventListeners() {
         });
     }
 
+    // Reset DMs Event Listener
+    const btnResetDMs = document.getElementById('btn-reset-dms');
+    if (btnResetDMs) {
+        btnResetDMs.addEventListener('click', async () => {
+            if (confirm("Are you sure you want to clear all DMs and reset conversation session states?")) {
+                try {
+                    const res = await fetch('/api/reset_dms', { method: 'POST' });
+                    if (res.ok) {
+                        alert("DMs reset successfully.");
+                        await loadCharacters();
+                        if (state.currentView === 'view-dms') {
+                            renderDMContacts();
+                            document.getElementById('chat-active-pane').style.display = 'none';
+                            document.getElementById('chat-no-selection').style.display = 'flex';
+                            state.activeChatCharId = null;
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error resetting DMs:", err);
+                }
+            }
+        });
+    }
+
+    // Reset Relationships Event Listener
+    const btnResetRelationships = document.getElementById('btn-reset-relationships');
+    if (btnResetRelationships) {
+        btnResetRelationships.addEventListener('click', async () => {
+            if (confirm("Are you sure you want to reset all mutual character relationship scores to 20?")) {
+                try {
+                    const res = await fetch('/api/reset_relationships', { method: 'POST' });
+                    if (res.ok) {
+                        alert("Relationship scores reset successfully.");
+                        await loadCharacters();
+                        if (state.currentView === 'view-dms') {
+                            renderDMContacts();
+                            if (state.activeChatCharId) {
+                                const activeChar = state.characters.find(c => c.id === state.activeChatCharId);
+                                if (activeChar) {
+                                    document.getElementById('chat-relationship-score').textContent = activeChar.relationship_score;
+                                    document.getElementById('chat-relationship-fill').style.width = `${activeChar.relationship_score}%`;
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error resetting relationships:", err);
+                }
+            }
+        });
+    }
+
     // Profile Back button Event Listener
     const btnProfileBack = document.getElementById('btn-profile-back');
     if (btnProfileBack) {

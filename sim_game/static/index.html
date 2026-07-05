@@ -414,6 +414,14 @@
                         </select>
                     </div>
 
+                    <!-- Database & Simulation Reset controls -->
+                    <div class="debug-resets-row" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; background: rgba(255,255,255,0.01); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <button class="btn btn-secondary btn-sm" id="btn-reset-timeline" style="font-size: 11.5px; height: 32px; padding: 0 4px; display: flex; align-items: center; justify-content: center; gap: 4px;">🗑️ Reset Timeline</button>
+                        <button class="btn btn-secondary btn-sm" id="btn-wipe-non-mutuals" style="font-size: 11.5px; height: 32px; padding: 0 4px; display: flex; align-items: center; justify-content: center; gap: 4px; border-color: rgba(255, 0, 100, 0.2); color: var(--accent-pink);">🧹 Wipe NPCs</button>
+                        <button class="btn btn-secondary btn-sm" id="btn-reset-dms" style="font-size: 11.5px; height: 32px; padding: 0 4px; display: flex; align-items: center; justify-content: center; gap: 4px; border-color: rgba(255, 165, 0, 0.2); color: #ffa500;">💬 Reset DMs</button>
+                        <button class="btn btn-secondary btn-sm" id="btn-reset-relationships" style="font-size: 11.5px; height: 32px; padding: 0 4px; display: flex; align-items: center; justify-content: center; gap: 4px; border-color: rgba(0, 240, 255, 0.2); color: var(--accent-cyan);">❤️ Reset Rels</button>
+                    </div>
+
                     <div id="debug-logs-list" style="display: flex; flex-direction: column; gap: 12px;">
                         <div class="loading-placeholder">No API requests recorded yet. Try interacting with NPCs, timelines, or DMs to generate AI activity.</div>
                     </div>
@@ -437,14 +445,8 @@
                     <button class="btn btn-secondary" id="btn-trigger-social-event">
                         <span class="btn-icon">🎭</span> Social Event
                     </button>
-                    <button class="btn btn-secondary" id="btn-reset-timeline">
-                        <span class="btn-icon">🗑️</span> Reset Timeline
-                    </button>
-                    <button class="btn btn-secondary" id="btn-wipe-non-mutuals" style="border-color: rgba(255, 0, 100, 0.3); color: var(--accent-pink);">
-                        <span class="btn-icon">🧹</span> Wipe NPCs
-                    </button>
                 </div>
-                <small class="sim-tip">Forces the AI simulation background loops to write new posts, report scene gossip, or clear the timeline.</small>
+                <small class="sim-tip">Trigger AI simulation background tasks to generate timeline activity, gossips, or choice scenarios.</small>
             </div>
 
             <!-- World Context Setting -->

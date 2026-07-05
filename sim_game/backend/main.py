@@ -943,6 +943,22 @@ def reset_timeline(db: Session = Depends(get_db)):
     crud.clear_posts(db)
     return {"status": "success"}
 
+@app.post("/api/reset_dms")
+def reset_dms(db: Session = Depends(get_db)):
+    """
+    Clears all direct messages and resets conversation sessions.
+    """
+    crud.clear_dms(db)
+    return {"status": "success"}
+
+@app.post("/api/reset_relationships")
+def reset_relationships(db: Session = Depends(get_db)):
+    """
+    Resets relationship score for all mutual characters to 20.
+    """
+    crud.reset_relationship_scores(db)
+    return {"status": "success"}
+
 @app.delete("/api/posts/{post_id}")
 def delete_timeline_post(post_id: int, db: Session = Depends(get_db)):
     """

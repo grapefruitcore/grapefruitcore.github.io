@@ -215,6 +215,24 @@ def clear_posts(db: Session):
     db.query(Post).delete()
     db.commit()
 
+def clear_dms(db: Session):
+    db.query(DirectMessage).delete()
+    # Reset conversation sessions back to defaults
+    from backend.database import ConversationSession
+    sessions = db.query(ConversationSession).all()
+    for s in sessions:
+        s.vibe = "Neutral"
+        s.intensity = 50
+        s.replies_left = 5
+    db.commit()
+
+def reset_relationship_scores(db: Session):
+    # Set the score for all mutuals (following=True) to 20
+    mutuals = db.query(Character).filter(Character.following == True).all()
+    for m in mutuals:
+        m.relationship_score = 20
+    db.commit()
+
 def delete_character(db: Session, character_id: int) -> bool:
     char = db.query(Character).filter(Character.id == character_id).first()
     if not char or char.is_user:
