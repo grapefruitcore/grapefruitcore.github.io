@@ -467,4 +467,9 @@ def get_character_relationship_context(db: Session, character_id: int) -> str:
         
     return "[ RELATIONSHIP & CONVERSATION CONTEXT ]\n" + "\n".join(parts) + "\n"
 
+def clear_activity_logs(db: Session):
+    from backend.database import ActivityLog
+    db.query(ActivityLog).delete()
+    db.commit()
+
 

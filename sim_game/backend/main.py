@@ -530,12 +530,29 @@ def wipe_non_mutuals(db: Session = Depends(get_db)):
     """
     Wipes all dynamically generated NPCs that are not followed (mutuals).
     """
-    db.query(Character).filter(
+    # Fetch all IDs of characters that are about to be wiped
+    wipe_ids = [c.id for c in db.query(Character).filter(
         Character.is_user == False,
         Character.following == False,
         Character.handle != "@popcraze"
-    ).delete(synchronize_session=False)
-    db.commit()
+    ).all()]
+    
+    if wipe_ids:
+        # Delete their conversation sessions
+        db.query(ConversationSession).filter(ConversationSession.character_id.in_(wipe_ids)).delete(synchronize_session=False)
+        
+        # Delete their direct messages
+        db.query(DirectMessage).filter(
+            (DirectMessage.sender_id.in_(wipe_ids)) | (DirectMessage.receiver_id.in_(wipe_ids))
+        ).delete(synchronize_session=False)
+        
+        # Delete their posts
+        db.query(Post).filter(Post.author_id.in_(wipe_ids)).delete(synchronize_session=False)
+        
+        # Now delete the characters themselves
+        db.query(Character).filter(Character.id.in_(wipe_ids)).delete(synchronize_session=False)
+        db.commit()
+        
     return {"status": "success"}
 
 @app.get("/api/characters/{character_id}/posts")
@@ -957,6 +974,14 @@ def reset_relationships(db: Session = Depends(get_db)):
     Resets relationship score for all mutual characters to 20.
     """
     crud.reset_relationship_scores(db)
+    return {"status": "success"}
+
+@app.post("/api/reset_activity_log")
+def reset_activity_log(db: Session = Depends(get_db)):
+    """
+    Clears all narrative activity logs from the database.
+    """
+    crud.clear_activity_logs(db)
     return {"status": "success"}
 
 @app.delete("/api/posts/{post_id}")

@@ -1671,6 +1671,26 @@ function setupEventListeners() {
         });
     }
 
+    // Reset Activity Log Event Listener
+    const btnResetActivityLog = document.getElementById('btn-reset-activity-log');
+    if (btnResetActivityLog) {
+        btnResetActivityLog.addEventListener('click', async () => {
+            if (confirm("Are you sure you want to clear all narrative activity logs?")) {
+                try {
+                    const res = await fetch('/api/reset_activity_log', { method: 'POST' });
+                    if (res.ok) {
+                        alert("Activity logs cleared successfully.");
+                        if (state.currentView === 'view-activity-log') {
+                            await loadActivityLog();
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error resetting activity logs:", err);
+                }
+            }
+        });
+    }
+
     // Profile Back button Event Listener
     const btnProfileBack = document.getElementById('btn-profile-back');
     if (btnProfileBack) {
