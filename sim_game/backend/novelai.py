@@ -314,14 +314,14 @@ async def generate_timeline_posts(community_name: str, seed_history: str = "") -
     if active_handles:
         handles_str = ", ".join(active_handles)
         instruction = (
-            f"{{Generate a batch of short, realistic, single-perspective Twitter/X timeline posts about the {community_name} scene. "
+            f"{{Generate a batch of short, realistic, single-perspective Twitter/X timeline posts about {community_name}. "
             f"Do not write dialogue scripts, play scripts, or conversations between multiple users. "
-            f"Write posts for some of the following active users: {handles_str}. "
+            f"Write posts for some of the following active users: {handles_str}."
             f"Each post must follow the exact format of the examples below, separated by '----'.}}"
         )
     else:
         instruction = (
-            f"{{Generate a batch of short, realistic, single-perspective Twitter/X timeline posts about the {community_name} scene. "
+            f"{{Generate a batch of short, realistic, single-perspective Twitter/X timeline posts about {community_name}. "
             f"Do not write dialogue scripts, play scripts, or conversations between multiple users. "
             f"Each post must follow the exact format of the examples below, separated by '----'.}}"
         )
@@ -370,25 +370,20 @@ async def generate_dm_reply(char_name: str, char_handle: str, char_bio: str, cha
     wc_prefix = f"[ World Context: {world_context} ]\n" if world_context else ""
     
     # Fetch social relationship context
-    social_context = ""
-    target_rel_context = ""
+    relationship_context = ""
     try:
         from backend.database import SessionLocal, Character
-        from backend.crud import get_character_social_context
+        from backend.crud import get_character_relationship_context
         db = SessionLocal()
         try:
             char = db.query(Character).filter_by(handle=char_handle).first()
             if char:
-                social_context = get_character_social_context(db, char.id)
-                if char.target_relationship:
-                    target_rel_context = f"[ Relationship Stance: {char_name} is the user's {char.target_relationship} ]\n"
+                relationship_context = get_character_relationship_context(db, char.id)
         finally:
             db.close()
     except Exception:
         pass
-    sc_prefix = f"{social_context}\n" if social_context else ""
-    tr_prefix = f"{target_rel_context}" if target_rel_context else ""
-    
+        
     history_str = ""
     for msg in message_history:
         history_str += f"{msg['sender']}: {msg['content']}\n"
@@ -397,10 +392,12 @@ async def generate_dm_reply(char_name: str, char_handle: str, char_bio: str, cha
     
     instruction = f"{{Generate the next direct message reply in the following chat. Write your reply as a structured block detailing the character's internal vibe, the intensity of that vibe, and the chat response.}}"
     
+    open_brace = "{"
+    close_brace = "}"
+
     prompt = (
         f"{wc_prefix}"
-        f"{sc_prefix}"
-        f"{tr_prefix}"
+        f"{relationship_context}"
         f"{instruction}\n"
         f"Character: {char_name} ({char_handle})\n"
         f"Bio: {char_bio}\n"
@@ -409,10 +406,10 @@ async def generate_dm_reply(char_name: str, char_handle: str, char_bio: str, cha
         f"{tweet_history}\n"
         f"Message History:\n"
         f"{history_str}"
-        f"\nResponse Format:\n"
+        f"\n{open_brace}Response Format:\n"
         f"Vibe: [Describe the character's emotional subtext, e.g., \"flustered yet amused\"]\n"
         f"Intensity: [An integer from 0 to 100 representing intensity]\n"
-        f"Message: [The message text]\n\n"
+        f"Message: [The message text]{close_brace}\n\n"
         f"Response:\n"
         f"Vibe:"
     )
@@ -447,25 +444,20 @@ async def generate_thread_reply(
     wc_prefix = f"[ World Context: {world_context} ]\n" if world_context else ""
     
     # Fetch social relationship context
-    social_context = ""
-    target_rel_context = ""
+    relationship_context = ""
     try:
         from backend.database import SessionLocal, Character
-        from backend.crud import get_character_social_context
+        from backend.crud import get_character_relationship_context
         db = SessionLocal()
         try:
             char = db.query(Character).filter_by(handle=char_handle).first()
             if char:
-                social_context = get_character_social_context(db, char.id)
-                if char.target_relationship:
-                    target_rel_context = f"[ Relationship Stance: {char_name} is the user's {char.target_relationship} ]\n"
+                relationship_context = get_character_relationship_context(db, char.id)
         finally:
             db.close()
     except Exception:
         pass
-    sc_prefix = f"{social_context}\n" if social_context else ""
-    tr_prefix = f"{target_rel_context}" if target_rel_context else ""
-    
+        
     history_str = ""
     for post in thread_history:
         history_str += f"{post['handle']}: {post['content']}\n"
@@ -479,8 +471,7 @@ async def generate_thread_reply(
     
     prompt = (
         f"{wc_prefix}"
-        f"{sc_prefix}"
-        f"{tr_prefix}"
+        f"{relationship_context}"
         f"{instruction}\n"
         f"Character: {char_name} ({char_handle})\n"
         f"Bio: {char_bio}\n"
@@ -630,4 +621,92 @@ async def generate_event_resolution(scenario_text: str, user_action: str) -> str
         return raw_output.strip()
     except Exception:
         return "Your action resolved the crisis. It positively affected your relationship with Soren, but negatively affected your reputation with Pop Craze."
+
+async def generate_new_ai_character(community_name: str) -> dict:
+    """
+    Generates a brand new AI character active in the community, including name, handle, bio, and first post.
+    """
+    world_context = get_world_context_from_db()
+    wc_prefix = f"[ World Context: {world_context} ]\n" if world_context else ""
+    
+    prompt = (
+        f"{wc_prefix}"
+        f"{{Generate a brand new, highly realistic and interesting character active in the {community_name} community, "
+        f"along with their first social media post. Do not use any existing predefined characters. "
+        f"Return the profile in the exact format shown below. Keep the handle creative and unique, starting with @. "
+        f"Do not write dialogue scripts or conversations.}}\n"
+        f"Format:\n"
+        f"Name: [Full Name]\n"
+        f"Handle: @[username]\n"
+        f"Bio: [A short 1-2 sentence bio describing their style, background, or behavior]\n"
+        f"Post: [A short, stylish, single-perspective post reflecting their style]\n"
+    )
+    
+    raw_output = await generate_completion(prompt, max_tokens=200, temperature=0.85, log_type="Generate New NPC Profile")
+    
+    name = ""
+    handle = ""
+    bio = ""
+    post_content = ""
+    
+    for line in raw_output.split("\n"):
+        line = line.strip()
+        if line.lower().startswith("name:"):
+            name = line[5:].strip()
+        elif line.lower().startswith("handle:"):
+            handle = line[7:].strip()
+        elif line.lower().startswith("bio:"):
+            bio = line[4:].strip()
+        elif line.lower().startswith("post:"):
+            post_content = line[5:].strip()
+            
+    # Remove surrounding brackets/quotes from post content if any
+    post_content = post_content.replace('"', '').strip()
+    
+    if not name or not handle or not post_content:
+        import random
+        num = random.randint(100, 999)
+        name = f"Vibe Seeker {num}"
+        handle = f"@vibeseeker{num}"
+        bio = f"Floating through the LA art scene in search of good energy."
+        post_content = "another night, another gallery opening. the scene is alive."
+        
+    return {
+        "name": name,
+        "handle": handle,
+        "bio": bio,
+        "content": post_content
+    }
+
+async def generate_single_character_post(char_name: str, char_handle: str, char_bio: str, tweet_history: str, community_name: str) -> str:
+    """
+    Generates a single post for an existing character, incorporating their full profile and tweet history.
+    """
+    world_context = get_world_context_from_db()
+    wc_prefix = f"[ World Context: {world_context} ]\n" if world_context else ""
+    
+    instruction = (
+        f"{{Generate a single, short, realistic, single-perspective Twitter/X timeline post by {char_name} ({char_handle}) "
+        f"who is part of the {community_name} community. "
+        f"The post must match their personality, bio, and style of previous posts. "
+        f"Write ONLY the post content. Do not write dialogue scripts, play scripts, or conversations between multiple users. "
+        f"Do not include their name, handle, timestamp, or any quotes. Write only the post itself.}}"
+    )
+    
+    prompt = (
+        f"{wc_prefix}"
+        f"{instruction}\n"
+        f"Character: {char_name}\n"
+        f"Handle: {char_handle}\n"
+        f"Bio: {char_bio}\n"
+    )
+    if tweet_history:
+        # Standardize history separators
+        clean_history = tweet_history.replace("====", "----")
+        # Format the tweet history block nicely
+        prompt += f"\nPrevious Posts:\n{clean_history}\n"
+    prompt += "New Post:"
+    
+    raw_output = await generate_completion(prompt, max_tokens=60, temperature=0.85, log_type="Timeline Posts")
+    return raw_output.strip().replace('"', '')
 

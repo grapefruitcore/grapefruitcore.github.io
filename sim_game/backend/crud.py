@@ -383,4 +383,63 @@ def get_character_social_context(db: Session, character_id: int) -> str:
     name = char.name if char else "Character"
     return f"[ {name}'s Relationships: {', '.join(lines)} ]"
 
+def get_character_relationship_context(db: Session, character_id: int) -> str:
+    from backend.database import Character, Post, DirectMessage
+    
+    char = db.query(Character).filter_by(id=character_id).first()
+    user = db.query(Character).filter_by(is_user=True).first()
+    if not char or not user:
+        return ""
+        
+    parts = []
+    
+    # 1. Your Focus / Target Relationship
+    if char.target_relationship:
+        parts.append(f"Relationship Focus: User is pursuing '{char.target_relationship}' relationship with {char.name}.")
+    else:
+        parts.append(f"Relationship Focus: Acquaintance / General interaction.")
+        
+    # 2. Relationship Score / Bond
+    parts.append(f"Relationship Score: {char.relationship_score}/100 (Stance: {char.session.vibe if char.session else 'Neutral'})")
+    
+    # 3. Public Timeline Exchanges
+    public_exchanges = []
+    # Character replying to User
+    char_replies = db.query(Post).filter(Post.author_id == character_id, Post.parent_id != None).all()
+    for r in char_replies:
+        parent = db.query(Post).filter_by(id=r.parent_id).first()
+        if parent and parent.author_id == user.id:
+            public_exchanges.append(f"- User: \"{parent.content}\" -> {char.name}: \"{r.content}\"")
+            
+    # User replying to Character
+    user_replies = db.query(Post).filter(Post.author_id == user.id, Post.parent_id != None).all()
+    for r in user_replies:
+        parent = db.query(Post).filter_by(id=r.parent_id).first()
+        if parent and parent.author_id == character_id:
+            public_exchanges.append(f"- {char.name}: \"{parent.content}\" -> User: \"{r.content}\"")
+            
+    if public_exchanges:
+        # Get last 5 exchanges
+        recent_exchanges = public_exchanges[-5:]
+        parts.append("Recent Public Post Exchanges:\n" + "\n".join(recent_exchanges))
+    else:
+        parts.append("Recent Public Post Exchanges: None.")
+        
+    # 4. DM Conversation History
+    dms = db.query(DirectMessage).filter(
+        ((DirectMessage.sender_id == user.id) & (DirectMessage.receiver_id == character_id)) |
+        ((DirectMessage.sender_id == character_id) & (DirectMessage.receiver_id == user.id))
+    ).order_by(DirectMessage.timestamp.asc()).all()
+    
+    if dms:
+        dm_lines = []
+        for dm in dms[-8:]:  # Get last 8 DMs
+            sender_name = "User" if dm.sender_id == user.id else char.name
+            dm_lines.append(f"- {sender_name}: \"{dm.content}\"")
+        parts.append("Recent Direct Message (DM) History:\n" + "\n".join(dm_lines))
+    else:
+        parts.append("Recent Direct Message (DM) History: None.")
+        
+    return "[ RELATIONSHIP & CONVERSATION CONTEXT ]\n" + "\n".join(parts) + "\n"
+
 

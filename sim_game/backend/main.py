@@ -790,66 +790,92 @@ async def send_dm_message(character_id: int, payload: DMCreate, background_tasks
 @app.post("/api/generate_timeline")
 async def generate_timeline(db: Session = Depends(get_db)):
     """
-    Triggers NovelAI to batch-generate new timeline posts.
+    Triggers NovelAI to generate new timeline posts individually,
+    incorporating bio, tweet history, and spawning 0-3 new AI-generated NPCs.
     """
+    import re
     # Pick a random community (or standard one since we only seed 1 initially)
     communities = crud.get_communities(db)
     if not communities:
         raise HTTPException(status_code=400, detail="No communities available")
     comm = random.choice(communities)
     
-    # Fetch seed tweets history from predefined characters
-    all_chars = crud.get_all_characters(db, exclude_user=True)
-    seed_history = ""
-    for char in all_chars:
-        if char.tweet_history:
-            seed_history += novelai.format_tweet_history(char.name, char.handle, char.tweet_history)
-            
-    # Generate timeline posts
-    generated_posts = await novelai.generate_timeline_posts(
-        community_name=comm.name,
-        seed_history=seed_history
-    )
+    # 1. Decide how many new characters to generate (0 to 3)
+    num_new_chars = random.randint(0, 3)
+    
+    # 2. Decide how many existing characters to generate posts for (e.g. 3 to 5)
+    num_existing_posts = random.randint(3, 5)
     
     saved_posts_count = 0
-    for g_post in generated_posts:
-        # Check if handle exists in characters
-        char = crud.get_character_by_handle(db, g_post["handle"])
-        if not char:
-            # Check maximum character count limit (100)
-            npc_count = db.query(Character).filter(Character.is_user == False).count()
-            if npc_count >= 100:
-                # Re-attribute post to a random existing NPC
-                existing_npcs = db.query(Character).filter(Character.is_user == False, Character.handle != "@popcraze").all()
-                if existing_npcs:
-                    char = random.choice(existing_npcs)
-                else:
-                    continue
-            else:
-                # Create a new dynamic character persona if doesn't exist
-                # Strip @ for file name/identifiers
-                clean_handle = g_post["handle"].replace("@", "")
-                char = crud.create_character(
-                    db=db,
-                    name=g_post["name"],
-                    handle=g_post["handle"],
-                    bio=f"A digital citizen active in the {comm.name} community.",
-                    avatar_path="/static/default_npc.png",
-                    avatar_alt_text=f"A default profile photo of {g_post['name']}",
-                    tweet_history=f"{g_post['name']}\n{g_post['handle']}\n* 00:00 AM\n{g_post['content']}\n----\n",
-                    is_predefined=False,
-                    following=False  # Dynamic generated NPCs are not mutuals by default
-                )
+    
+    # 3. Generate new dynamic AI characters
+    for _ in range(num_new_chars):
+        # Check maximum character count limit (100)
+        npc_count = db.query(Character).filter(Character.is_user == False).count()
+        if npc_count >= 100:
+            break
             
-        # Create the post
+        npc_data = await novelai.generate_new_ai_character(comm.name)
+        
+        # Save character
+        char = crud.create_character(
+            db=db,
+            name=npc_data["name"],
+            handle=npc_data["handle"],
+            bio=npc_data["bio"],
+            avatar_path="/static/default_npc.png",
+            avatar_alt_text=f"A default profile photo of {npc_data['name']}",
+            tweet_history=f"{npc_data['name']}\n{npc_data['handle']}\n* 00:00 AM\n{npc_data['content']}\n----\n",
+            is_predefined=False,
+            following=False  # Dynamic generated NPCs are not mutuals by default
+        )
+        
+        # Create post
         crud.create_post(
             db=db,
             author_id=char.id,
-            content=g_post["content"],
+            content=npc_data["content"],
             community_id=comm.id
         )
         saved_posts_count += 1
         
+    # 4. Generate posts for existing characters
+    all_npcs = db.query(Character).filter(Character.is_user == False, Character.handle != "@popcraze").all()
+    if all_npcs:
+        # Choose a subset to generate posts for
+        chosen_npcs = random.sample(all_npcs, min(num_existing_posts, len(all_npcs)))
+        for npc in chosen_npcs:
+            content = await novelai.generate_single_character_post(
+                char_name=npc.name,
+                char_handle=npc.handle,
+                char_bio=npc.bio,
+                tweet_history=npc.tweet_history or "",
+                community_name=comm.name
+            )
+            
+            # Check for bracketed placeholders like [reply here] or [insert response]
+            placeholder_pat = r'\[(?:reply|response|insert|write|text|content|comment|here).*?\]'
+            if re.search(placeholder_pat, content, re.IGNORECASE) or not content.strip():
+                continue
+                
+            # Create post
+            crud.create_post(
+                db=db,
+                author_id=npc.id,
+                content=content,
+                community_id=comm.id
+            )
+            
+            # Add to character's tweet history
+            formatted_history = f"{npc.name}\n{npc.handle}\n* {datetime.datetime.now().strftime('%I:%M %p')}\n{content}\n----"
+            if npc.tweet_history:
+                npc.tweet_history = f"{npc.tweet_history.strip()}\n{formatted_history}\n"
+            else:
+                npc.tweet_history = f"{formatted_history}\n"
+            db.commit()
+            
+            saved_posts_count += 1
+            
     return {"status": "success", "posts_generated": saved_posts_count}
 
 @app.post("/api/generate_gossip")
