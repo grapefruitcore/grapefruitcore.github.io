@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibeNet // Life-Simulator</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="app-sidebar">
+            <div class="brand">
+                <span class="brand-glow">VIBENET</span>
+                <span class="brand-version">v1.0</span>
+            </div>
+            
+            <nav class="nav-menu">
+                <button class="nav-item active" id="nav-timeline" data-target="view-timeline">
+                    <span class="nav-icon">🌐</span> Timeline
+                </button>
+                <button class="nav-item" id="nav-dms" data-target="view-dms">
+                    <span class="nav-icon">💬</span> Direct Messages
+                </button>
+                <button class="nav-item" id="nav-studio" data-target="view-studio">
+                    <span class="nav-icon">🎭</span> Character Studio
+                </button>
+                <button class="nav-item" id="nav-activity-log" data-target="view-activity-log">
+                    <span class="nav-icon">📜</span> Activity Log
+                </button>
+                <button class="nav-item" id="nav-profile" data-target="view-profile">
+                    <span class="nav-icon">👤</span> My Profile
+                </button>
+            </nav>
+            
+            <!-- User Mini Profile at bottom of sidebar -->
+            <div class="user-mini-card" id="user-mini-profile">
+                <div class="mini-avatar-container">
+                    <div class="mini-avatar-fallback">P</div>
+                </div>
+                <div class="mini-details">
+                    <div class="mini-name">Player</div>
+                    <div class="mini-handle">@playerone</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT COLUMN -->
+        <main class="app-content">
+            
+            <!-- TIMELINE VIEW -->
+            <section id="view-timeline" class="content-view active">
+                <header class="view-header">
+                    <h1>Timeline</h1>
+                    <div class="feed-tabs">
+                        <button class="tab-btn active" id="tab-all-posts">Public Feed</button>
+                        <button class="tab-btn" id="tab-community-posts">Underground Music</button>
+                    </div>
+                </header>
+
+                <div class="timeline-layout">
+                    <!-- Feed Column -->
+                    <div class="feed-column">
+                        <!-- Post Publisher -->
+                        <div class="card publisher-card">
+                            <form id="post-form">
+                                <textarea id="post-content" placeholder="Share a status update, photo description, or music vibe..." required></textarea>
+                                <div class="publisher-actions">
+                                    <select id="post-community-select">
+                                        <option value="">Public Feed</option>
+                                        <!-- Dynamically loaded -->
+                                    </select>
+                                    <button type="submit" class="btn btn-primary">Post Update</button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Timeline Feed Container -->
+                        <div class="posts-feed" id="timeline-posts-feed">
+                            <!-- Dynamic Posts -->
+                            <div class="loading-placeholder">Loading feed posts...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- THREAD DETAIL VIEW -->
+            <section id="view-thread" class="content-view">
+                <header class="view-header">
+                    <button class="btn btn-icon" id="btn-back-timeline">← Back to Timeline</button>
+                    <h1>Conversation Thread</h1>
+                </header>
+
+                <div class="thread-container">
+                    <!-- Typing Indicator Banner -->
+                    <div class="typing-banner" id="thread-typing-banner">
+                        <span class="typing-dot"></span>
+                        <span class="typing-dot"></span>
+                        <span class="typing-dot"></span>
+                        <span class="typing-text">People are typing in this thread...</span>
+                    </div>
+
+                    <div class="thread-posts-list" id="thread-posts-container">
+                        <!-- Parent Post and Replies -->
+                    </div>
+
+                    <!-- Thread Reply Composer -->
+                    <div class="card publisher-card thread-composer">
+                        <form id="thread-reply-form">
+                            <textarea id="thread-reply-content" placeholder="Write a public reply to this thread..." required></textarea>
+                            <div class="publisher-actions">
+                                <span class="reply-tip">Answering as <strong class="user-handle-txt">@playerone</strong></span>
+                                <button type="submit" class="btn btn-primary">Send Reply</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DIRECT MESSAGES VIEW -->
+            <section id="view-dms" class="content-view">
+                <div class="dms-layout">
+                    <!-- DMs Contact List Sidebar -->
+                    <div class="dms-sidebar">
+                        <h2>Chats</h2>
+                        <div class="contact-list" id="dm-contacts-list">
+                            <!-- Contact items loaded dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- DM Active Conversation -->
+                    <div class="dms-chat-area" id="dm-active-chat-area">
+                        <!-- Welcome / Select Chat Placeholder -->
+                        <div class="chat-placeholder-state" id="chat-no-selection">
+                            <div class="placeholder-art">💬</div>
+                            <h3>Your Inbox</h3>
+                            <p>Select a character from the sidebar list to start exchanging direct messages, building relationship scores, and tracking emotional states.</p>
+                        </div>
+
+                        <!-- Active DM Session Pane -->
+                        <div class="chat-active-pane" id="chat-active-pane" style="display: none;">
+                            <!-- Active Chat Header -->
+                            <div class="chat-header">
+                                <div class="chat-header-profile">
+                                    <img src="" id="chat-header-avatar" alt="Character Avatar" class="chat-avatar">
+                                    <div class="chat-header-info">
+                                        <div class="chat-header-name" id="chat-header-name">Soren</div>
+                                        <div class="chat-header-handle" id="chat-header-handle">@tsubiclub</div>
+                                    </div>
+                                </div>
+                                <div class="relationship-meter-container">
+                                    <div class="meter-label">Bond: <span id="chat-relationship-score">20</span>/100</div>
+                                    <div class="progress-bar-bg">
+                                        <div class="progress-bar-fill" id="chat-relationship-fill" style="width: 20%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Chat Messages Bubble Box -->
+                            <div class="chat-messages-container" id="chat-messages-container">
+                                <!-- Messages are dynamically inserted here -->
+                            </div>
+
+                            <!-- Turn & Vibe Status Bar (Bottom of chat pane) -->
+                            <div class="chat-status-bar">
+                                <div class="vibe-monitor">
+                                    <span class="status-label">Stance:</span>
+                                    <span class="vibe-text" id="dm-vibe-text">Neutral</span>
+                                    <div class="vibe-bar">
+                                        <div class="vibe-fill" id="dm-vibe-intensity-fill" style="width: 50%;"></div>
+                                    </div>
+                                    <span class="intensity-pct" id="dm-vibe-intensity-pct">50%</span>
+                                </div>
+                                <div class="turn-counter">
+                                    <span class="turn-icon">⏳</span>
+                                    <span class="turn-count" id="dm-replies-left">5</span> replies left
+                                </div>
+                            </div>
+
+                            <!-- Chat Composer Input -->
+                            <div class="chat-composer">
+                                <form id="dm-send-form">
+                                    <input type="text" id="dm-input-content" placeholder="Send a message..." required autocomplete="off">
+                                    <button type="submit" class="btn btn-primary">Send</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CHARACTER STUDIO VIEW -->
+            <section id="view-studio" class="content-view">
+                <header class="view-header">
+                    <h1>Character Studio</h1>
+                </header>
+
+                <div class="studio-layout">
+                    <!-- Create Form -->
+                    <div class="card studio-form-card">
+                        <h2 id="studio-form-title">Create Persona</h2>
+                        <form id="create-character-form" enctype="multipart/form-data">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="char-name">Character Name</label>
+                                    <input type="text" id="char-name" placeholder="e.g., Ella" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="char-handle">Twitter/X Handle</label>
+                                    <input type="text" id="char-handle" placeholder="e.g., @moviesforguyss" required>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="char-bio">Biography (Persona Seed)</label>
+                                <textarea id="char-bio" placeholder="Write a short background, occupation, and description of this character's behavior..." required></textarea>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="char-avatar-file">Avatar Image Upload</label>
+                                    <input type="file" id="char-avatar-file" accept="image/*">
+                                </div>
+                                <div class="form-group">
+                                    <label for="char-avatar-alt">Avatar Description (Image Context)</label>
+                                    <input type="text" id="char-avatar-alt" placeholder="e.g., A messy hair girl looking away, retro filters" required>
+                                    <small class="form-tip">Injected into the AI prompt so it knows what its avatar looks like.</small>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="char-history">Tweet History (Few-shot Examples)</label>
+                                <textarea id="char-history" class="history-textarea" placeholder="Format:&#10;Name&#10;@handle&#10;* XX:XX XM&#10;Tweet Content...&#10;----&#10;Name&#10;@handle..." required></textarea>
+                            </div>
+
+                            <!-- Manage Connections Section -->
+                            <div class="form-group" style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                                <label style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">Social Connections (NPC-NPC Relationships)</label>
+                                <div class="form-row" style="gap: 8px; margin-bottom: 8px;">
+                                    <div class="form-group" style="flex: 2; margin-bottom: 0;">
+                                        <label for="rel-target-select" style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 4px;">Connect With</label>
+                                        <select id="rel-target-select" style="width: 100%; height: 36px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: var(--text-primary); padding: 0 8px; outline: none;">
+                                            <option value="">-- Select Character --</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" style="flex: 2; margin-bottom: 0;">
+                                        <label for="rel-type-select" style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 4px;">Connection Type</label>
+                                        <select id="rel-type-select" style="width: 100%; height: 36px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: var(--text-primary); padding: 0 8px; outline: none;">
+                                            <option value="Friend">Friend</option>
+                                            <option value="Ex-partner">Ex-partner</option>
+                                            <option value="Collaborator">Collaborator</option>
+                                            <option value="Bandmate">Bandmate</option>
+                                            <option value="Rival">Rival</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" style="flex: 1; align-self: flex-end; margin-bottom: 0;">
+                                        <button type="button" class="btn btn-secondary btn-sm" id="btn-add-relationship" style="height: 36px; width: 100%; font-size: 12px; font-weight: 600; padding: 0;">Add</button>
+                                    </div>
+                                </div>
+                                <div id="studio-relationships-list" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                                    <!-- Dynamic relationship tags -->
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 8px; margin-top: 15px;">
+                                <button type="submit" class="btn btn-primary" id="btn-submit-character" style="flex: 3;">Instantiate Character</button>
+                                <button type="button" class="btn btn-secondary" id="btn-cancel-character-edit" style="display: none; flex: 1.5; font-size: 12.5px; font-weight: 600;">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Characters Registry -->
+                    <div class="studio-registry">
+                        <h2>Instantiated Personas</h2>
+                        <div class="registry-grid" id="studio-characters-grid">
+                            <!-- Dynamically loaded character cards -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ACTIVITY LOG VIEW -->
+            <section id="view-activity-log" class="content-view">
+                <header class="view-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <h1>Narrative Activity Log</h1>
+                    <button class="btn btn-secondary" id="btn-undo-action" style="font-size: 13px; font-weight: 500;">
+                        <span class="btn-icon">↩️</span> Undo Last Action
+                    </button>
+                </header>
+
+                <div class="activity-log-container" id="activity-log-feed">
+                    <div class="loading-placeholder">Loading narrative history...</div>
+                </div>
+            </section>
+
+            <!-- MY PROFILE VIEW -->
+            <section id="view-profile" class="content-view">
+                <header class="view-header">
+                    <h1>My Profile Settings</h1>
+                </header>
+
+                <div class="profile-layout card">
+                    <form id="profile-update-form" enctype="multipart/form-data">
+                        <div class="profile-form-header">
+                            <div class="profile-avatar-upload">
+                                <div class="profile-avatar-preview" id="user-profile-avatar-preview">P</div>
+                                <input type="file" id="profile-avatar-file" accept="image/*" class="file-input">
+                                <label for="profile-avatar-file" class="btn btn-secondary btn-sm">Upload Avatar</label>
+                            </div>
+                            <div class="profile-meta-inputs">
+                                <div class="form-group">
+                                    <label for="profile-name">Display Name</label>
+                                    <input type="text" id="profile-name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="profile-handle">Handle</label>
+                                    <input type="text" id="profile-handle" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="profile-bio">Bio</label>
+                            <textarea id="profile-bio" required></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="profile-avatar-alt">Avatar Alt Text (Context Description)</label>
+                            <input type="text" id="profile-avatar-alt" placeholder="e.g. A young music producer wearing glasses">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Save Profile</button>
+                    </form>
+                </div>
+            <!-- CHARACTER PROFILE VIEW -->
+            <section id="view-character-profile" class="content-view">
+                <header class="view-header" style="display: flex; align-items: center; justify-content: flex-start; gap: 16px;">
+                    <button class="btn btn-secondary btn-sm" id="btn-profile-back" style="font-size: 13px; font-weight: 600; padding: 6px 12px; height: 32px;">⬅ Back</button>
+                    <h1>Profile</h1>
+                </header>
+
+                <div class="card profile-card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+                    <div style="display: flex; gap: 20px; align-items: center;">
+                        <div id="char-profile-avatar" style="width: 72px; height: 72px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-pink)); font-weight: 700; color: #000; font-size: 24px;"></div>
+                        <div style="flex-grow: 1;">
+                            <h2 id="char-profile-name" style="margin: 0; font-size: 22px; font-family: var(--font-heading); font-weight: 700; color: var(--text-primary);"></h2>
+                            <div id="char-profile-handle" style="color: var(--text-muted); font-size: 13.5px; margin-top: 2px;"></div>
+                            <div id="char-profile-status-badge" style="margin-top: 8px;"></div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <button class="btn btn-primary" id="btn-profile-follow-toggle" style="font-size: 13px; font-weight: 600; padding: 8px 16px;"></button>
+                        </div>
+                    </div>
+
+                    <div id="char-profile-bio" style="font-size: 14.5px; line-height: 1.5; color: var(--text-primary); border-top: 1px solid var(--border-color); padding-top: 12px;"></div>
+
+                    <!-- Target Relationship Editor -->
+                    <div id="char-profile-target-rel-section" style="border-top: 1px solid var(--border-color); padding-top: 12px; display: none; flex-direction: column; gap: 6px;">
+                        <label for="char-profile-target-rel-select" style="font-size: 12.5px; font-weight: 600; color: var(--text-secondary);">Your Focus / Target Relationship</label>
+                        <div style="display: flex; gap: 8px;">
+                            <select id="char-profile-target-rel-select" style="flex-grow: 1; height: 36px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: var(--text-primary); padding: 0 8px; font-size: 13px; outline: none;">
+                                <option value="">None (Acquaintance)</option>
+                                <option value="online crush">Online Crush</option>
+                                <option value="hate follow">Hate Follow</option>
+                                <option value="collab goal">Collab Goal</option>
+                            </select>
+                            <button class="btn btn-secondary btn-sm" id="btn-save-profile-target-rel" style="height: 36px; font-size: 12px; padding: 0 16px;">Save Focus</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-posts-section">
+                    <h3 style="margin-bottom: 12px; font-size: 17px; font-family: var(--font-heading); font-weight: 600; color: var(--text-secondary);">Recent Posts</h3>
+                    <div id="char-profile-posts-feed" class="posts-feed">
+                        <!-- Dynamically populated cards -->
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- RIGHT PANEL (SIMULATION CONTROLS & STATS) -->
+        <section class="app-right-panel">
+            <!-- Simulation Trigger Actions -->
+            <div class="panel-section">
+                <h3>Simulation Commands</h3>
+                <div class="sim-actions-grid">
+                    <button class="btn btn-secondary" id="btn-trigger-timeline">
+                        <span class="btn-icon">⚡</span> Batch Posts
+                    </button>
+                    <button class="btn btn-secondary" id="btn-trigger-gossip">
+                        <span class="btn-icon">📣</span> Gossip Headline
+                    </button>
+                    <button class="btn btn-secondary" id="btn-trigger-social-event">
+                        <span class="btn-icon">🎭</span> Social Event
+                    </button>
+                    <button class="btn btn-secondary" id="btn-reset-timeline">
+                        <span class="btn-icon">🗑️</span> Reset Timeline
+                    </button>
+                    <button class="btn btn-secondary" id="btn-wipe-non-mutuals" style="border-color: rgba(255, 0, 100, 0.3); color: var(--accent-pink);">
+                        <span class="btn-icon">🧹</span> Wipe NPCs
+                    </button>
+                </div>
+                <small class="sim-tip">Forces the AI simulation background loops to write new posts, report scene gossip, or clear the timeline.</small>
+            </div>
+
+            <!-- World Context Setting -->
+            <div class="panel-section">
+                <h3>World Context</h3>
+                <div class="form-group" style="margin-bottom: 8px; gap: 4px;">
+                    <textarea id="world-context-input" placeholder="Configure global simulation context (e.g. 'The world is a futuristic neon city where synth music is currency...')" style="width: 100%; min-height: 80px; font-size: 12.5px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); padding: 8px; resize: none; outline: none; transition: border-color 0.2s;"></textarea>
+                </div>
+                <button class="btn btn-secondary btn-block btn-sm" id="btn-save-world-context">Save Context</button>
+            </div>
+
+            <!-- Scoreboard -->
+            <div class="panel-section">
+                <h3>Vibe Connections</h3>
+                <div class="scoreboard-list" id="sidebar-relationship-list">
+                    <!-- Scores list loaded dynamically -->
+                </div>
+            </div>
+        </section>
+
+    </div>
+    
+    <!-- EVENT OVERLAY MODAL -->
+    <div class="modal-backdrop" id="event-modal-backdrop" style="display: none;">
+        <div class="card event-modal-card">
+            <div class="event-modal-header">
+                <h2>⚠️ Social Dilemma Event</h2>
+                <div class="involved-characters-badge" id="event-characters-list"></div>
+            </div>
+            <div class="event-scenario" id="event-scenario-text">
+                Loading dilemma scenario...
+            </div>
+            <form id="event-resolve-form">
+                <div class="form-group">
+                    <label for="event-choice-input" style="font-weight: 500; font-size: 13.5px; color: var(--accent-cyan); display: block; margin-bottom: 8px;">Your Action (Tabletop RPG Choice):</label>
+                    <textarea id="event-choice-input" placeholder="Type what you will do in response to this dilemma..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="btn-submit-event-choice">Submit Action</button>
+            </form>
+            <div class="event-resolution-box" id="event-resolution-box" style="display: none;">
+                <h3 style="color: var(--accent-pink); font-family: 'Outfit', sans-serif; margin-bottom: 8px;">Outcome:</h3>
+                <p id="event-resolution-text" style="line-height: 1.6; font-size: 14.5px; margin-bottom: 16px; color: var(--text-secondary);"></p>
+                <div class="event-stats-unlocked" id="event-resolution-stats"></div>
+                <button type="button" class="btn btn-primary btn-block" id="btn-close-event-modal" style="margin-top: 16px;">Resume Adventure</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- App JavaScript -->
+    <script src="/app.js" type="module"></script>
+</body>
+</html>

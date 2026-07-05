@@ -1,0 +1,21 @@
+# Environment secrets
+.env
+
+# SQLite databases
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Python cache & compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest cache
+.pytest_cache/
+tests/.pytest_cache/
+
+# Local configuration
+.vscode/
+.idea/
