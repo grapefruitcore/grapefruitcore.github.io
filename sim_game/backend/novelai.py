@@ -701,12 +701,30 @@ async def generate_single_character_post(char_name: str, char_handle: str, char_
         f"Bio: {char_bio}\n"
     )
     if tweet_history:
-        # Standardize history separators
-        clean_history = tweet_history.replace("====", "----")
-        # Format the tweet history block nicely
-        prompt += f"\nPrevious Posts:\n{clean_history}\n"
-    prompt += "New Post:"
+        lines = [line.strip() for line in tweet_history.split("\n") if line.strip()]
+        clean_lines = []
+        for line in lines:
+            if line in ("----", "====", ">", "New Post:"):
+                continue
+            if line.startswith("@") or line.startswith("*"):
+                continue
+            if line.lower() == char_name.lower():
+                continue
+            if "Only write the content" in line or "(Only write" in line:
+                continue
+            # Strip leading/trailing formatting characters
+            line = line.strip('"-* ')
+            if line:
+                clean_lines.append(line)
+        if clean_lines:
+            prompt += "\nPrevious Posts:\n"
+            for cl in clean_lines:
+                prompt += f"- {cl}\n"
+    prompt += "\nNew Post:\n-"
     
     raw_output = await generate_completion(prompt, max_tokens=60, temperature=0.85, log_type="Timeline Posts")
-    return raw_output.strip().replace('"', '')
+    
+    # Strip any leading hyphens, quotes, or whitespace
+    result = raw_output.strip().strip('"-* ')
+    return result
 

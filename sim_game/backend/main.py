@@ -866,12 +866,12 @@ async def generate_timeline(db: Session = Depends(get_db)):
                 community_id=comm.id
             )
             
-            # Add to character's tweet history
-            formatted_history = f"{npc.name}\n{npc.handle}\n* {datetime.datetime.now().strftime('%I:%M %p')}\n{content}\n----"
+            # Add to character's tweet history in raw single-line format
+            content_clean = content.strip().replace("\n", " ")
             if npc.tweet_history:
-                npc.tweet_history = f"{npc.tweet_history.strip()}\n{formatted_history}\n"
+                npc.tweet_history = f"{npc.tweet_history.strip()}\n{content_clean}\n"
             else:
-                npc.tweet_history = f"{formatted_history}\n"
+                npc.tweet_history = f"{content_clean}\n"
             db.commit()
             
             saved_posts_count += 1
