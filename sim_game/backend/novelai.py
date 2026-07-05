@@ -85,8 +85,9 @@ def parse_generated_posts(text: str) -> list:
         if not lines:
             continue
             
-        # Ignore chunks containing redactions
-        if any("[REDACTED]" in line for line in lines):
+        # Ignore chunks containing redactions or bracketed placeholders
+        placeholder_pat = r'\[(?:reply|response|insert|write|text|content|comment|here).*?\]'
+        if any("[REDACTED]" in line for line in lines) or any(re.search(placeholder_pat, line, re.IGNORECASE) for line in lines):
             continue
             
         # We search for the handle (starts with or contains '@')
@@ -440,6 +441,27 @@ async def generate_thread_reply(
     try:
         raw_output = await generate_completion(prompt, max_tokens=80, temperature=0.8, stop=["\n@", "\n----"])
         reply = raw_output.strip()
+        
+        # Check for bracketed placeholders like [reply here] or [insert response]
+        placeholder_pat = r'\[(?:reply|response|insert|write|text|content|comment|here).*?\]'
+        if re.search(placeholder_pat, reply, re.IGNORECASE) or not reply:
+            # Fallback attempt with a lower temperature
+            raw_output = await generate_completion(prompt, max_tokens=80, temperature=0.5, stop=["\n@", "\n----"])
+            reply = raw_output.strip()
+            
+            if re.search(placeholder_pat, reply, re.IGNORECASE) or not reply:
+                # Character-specific defaults to maintain immersion
+                defaults = {
+                    "@notdaine": "hahaha true",
+                    "@darcyebaylis": "yeah honestly",
+                    "@carolinecalloway": "omg details please",
+                    "@avgcowgirl": "real",
+                    "@ninajirachi": "lmao wait what",
+                    "@quannnic": "so true",
+                    "@photographicmemory": "damn"
+                }
+                reply = defaults.get(char_handle, "yeah")
+                
         if replying_to_user:
             # Check if the generated output already starts with or includes the handle to avoid repetition
             if not reply.startswith(user_handle) and not reply.startswith("@"):

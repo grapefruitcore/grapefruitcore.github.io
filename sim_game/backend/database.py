@@ -304,7 +304,7 @@ def init_db():
             },
             {
                 "name": "Max",
-                "handle": "@photgraphicmemory",
+                "handle": "@photographicmemory",
                 "bio": "LA-based visual designer, photographer, and experimental musician. In a band called Car Underwater with Darcy and Zo.",
                 "avatar_path": "/static/default_npc.png",
                 "avatar_alt_text": "Max behind a camera flash, motion blur filter",
