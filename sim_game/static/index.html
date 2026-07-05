@@ -37,6 +37,9 @@
                 <button class="nav-item" id="nav-profile" data-target="view-profile">
                     <span class="nav-icon">👤</span> My Profile
                 </button>
+                <button class="nav-item" id="nav-debug" data-target="view-debug">
+                    <span class="nav-icon">🛠️</span> AI Debug Logs
+                </button>
             </nav>
             
             <!-- User Mini Profile at bottom of sidebar -->
@@ -380,6 +383,37 @@
                     <h3 style="margin-bottom: 12px; font-size: 17px; font-family: var(--font-heading); font-weight: 600; color: var(--text-secondary);">Recent Posts</h3>
                     <div id="char-profile-posts-feed" class="posts-feed">
                         <!-- Dynamically populated cards -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI DEBUG LOGS VIEW -->
+            <section id="view-debug" class="content-view">
+                <header class="view-header">
+                    <h1>AI Debug Logs</h1>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary btn-sm" id="btn-refresh-debug-logs">🔄 Refresh</button>
+                        <button class="btn btn-secondary btn-sm" id="btn-clear-debug-logs" style="border-color: rgba(255, 0, 100, 0.3); color: var(--accent-pink);">Wipe Logs</button>
+                    </div>
+                </header>
+
+                <div class="debug-logs-container" style="display: flex; flex-direction: column; gap: 16px;">
+                    <div class="debug-logs-filter-row" style="display: flex; gap: 8px; align-items: center; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Filter:</span>
+                        <select id="debug-log-filter-select" style="height: 32px; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: var(--text-primary); padding: 0 8px; font-size: 12px; outline: none;">
+                            <option value="all">All API Calls</option>
+                            <option value="Timeline Posts">Timeline Posts</option>
+                            <option value="DM Reply">DM Replies</option>
+                            <option value="Thread Reply">Thread Replies</option>
+                            <option value="Social Dilemma Scenario">Social Dilemma Scenarios</option>
+                            <option value="Social Dilemma Resolution">Social Dilemma Resolutions</option>
+                            <option value="Narrative Outcome">Narrative Outcomes</option>
+                            <option value="Gossip Headline">Gossip Headlines</option>
+                        </select>
+                    </div>
+
+                    <div id="debug-logs-list" style="display: flex; flex-direction: column; gap: 12px;">
+                        <div class="loading-placeholder">No API requests recorded yet. Try interacting with NPCs, timelines, or DMs to generate AI activity.</div>
                     </div>
                 </div>
             </section>

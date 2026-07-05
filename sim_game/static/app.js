@@ -142,6 +142,8 @@ function switchView(viewId) {
         renderProfileSettings();
     } else if (viewId === 'view-activity-log') {
         loadActivityLog();
+    } else if (viewId === 'view-debug') {
+        loadDebugLogs();
     }
     
     if (viewId !== 'view-thread') {
@@ -1642,5 +1644,127 @@ function setupEventListeners() {
                 openCharacterProfile(state.activeChatCharId);
             }
         });
+    }
+
+    // Debug logs refresh
+    const btnRefreshDebug = document.getElementById('btn-refresh-debug-logs');
+    if (btnRefreshDebug) {
+        btnRefreshDebug.addEventListener('click', loadDebugLogs);
+    }
+
+    // Debug logs filter select change
+    const selectFilterDebug = document.getElementById('debug-log-filter-select');
+    if (selectFilterDebug) {
+        selectFilterDebug.addEventListener('change', loadDebugLogs);
+    }
+
+    // Debug logs clear
+    const btnClearDebug = document.getElementById('btn-clear-debug-logs');
+    if (btnClearDebug) {
+        btnClearDebug.addEventListener('click', async () => {
+            if (confirm("Are you sure you want to clear all API debug logs?")) {
+                try {
+                    const res = await fetch('/api/debug/logs', { method: 'DELETE' });
+                    if (res.ok) {
+                        loadDebugLogs();
+                    }
+                } catch (e) {
+                    console.error("Error clearing debug logs:", e);
+                }
+            }
+        });
+    }
+}
+
+async function loadDebugLogs() {
+    const listEl = document.getElementById('debug-logs-list');
+    const filterEl = document.getElementById('debug-log-filter-select');
+    const filterVal = filterEl ? filterEl.value : 'all';
+    
+    listEl.innerHTML = '<div class="loading-placeholder">Fetching debug records...</div>';
+    
+    try {
+        const res = await fetch('/api/debug/logs');
+        if (res.ok) {
+            const logs = await res.json();
+            
+            // Filter logs
+            const filtered = logs.filter(log => {
+                if (filterVal === 'all') return true;
+                return log.api_type === filterVal;
+            });
+            
+            if (filtered.length === 0) {
+                listEl.innerHTML = '<div class="loading-placeholder">No matching API logs found.</div>';
+                return;
+            }
+            
+            // Sort by timestamp descending (newest first)
+            filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            listEl.innerHTML = '';
+            filtered.forEach((log, idx) => {
+                const card = document.createElement('div');
+                card.className = 'card debug-log-card';
+                card.style.padding = '16px';
+                card.style.display = 'flex';
+                card.style.flexDirection = 'column';
+                card.style.gap = '12px';
+                card.style.cursor = 'pointer';
+                card.style.transition = 'background 0.2s';
+                
+                const timeStr = new Date(log.timestamp).toLocaleTimeString();
+                
+                // Color badge based on log type
+                let badgeClass = 'generated';
+                if (log.api_type.includes('Reply')) badgeClass = 'mutual';
+                if (log.api_type.includes('Dilemma')) badgeClass = 'target-rel';
+                if (log.status === 'error') badgeClass = 'rel-minus';
+                
+                // Prompt preview (first 100 characters)
+                const preview = log.prompt.length > 100 
+                    ? log.prompt.substring(0, 100).replace(/\n/g, ' ') + '...' 
+                    : log.prompt.replace(/\n/g, ' ');
+                
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="profile-badge ${badgeClass}" style="font-size: 11px;">${log.api_type}</span>
+                        <span style="font-size: 11px; color: var(--text-muted);">${timeStr}</span>
+                    </div>
+                    <div class="log-preview" style="font-size: 13.5px; color: var(--text-secondary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+                        ${preview}
+                    </div>
+                    <div class="log-details" style="display: none; flex-direction: column; gap: 12px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                        <div>
+                            <div style="font-size: 11px; font-weight: 600; color: var(--accent-cyan); margin-bottom: 6px; text-transform: uppercase;">Prompt Sent to AI</div>
+                            <pre style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; color: var(--text-primary); border: 1px solid var(--border-color);"></pre>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; font-weight: 600; color: var(--accent-pink); margin-bottom: 6px; text-transform: uppercase;">AI Completion / Response</div>
+                            <pre style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; color: var(--text-primary); border: 1px solid var(--border-color);"></pre>
+                        </div>
+                    </div>
+                `;
+                
+                // Safe content injection to prevent HTML injection XSS issues
+                card.querySelector('.log-details pre:first-of-type').textContent = log.prompt;
+                card.querySelector('.log-details pre:last-of-type').textContent = log.response;
+                
+                // Toggle accordion details
+                card.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'PRE') return;
+                    const details = card.querySelector('.log-details');
+                    const isHidden = details.style.display === 'none';
+                    details.style.display = isHidden ? 'flex' : 'none';
+                });
+                
+                listEl.appendChild(card);
+            });
+        } else {
+            listEl.innerHTML = '<div class="loading-placeholder">Failed to fetch debug logs.</div>';
+        }
+    } catch (err) {
+        console.error("Error loading debug logs:", err);
+        listEl.innerHTML = '<div class="loading-placeholder">Connection error.</div>';
     }
 }

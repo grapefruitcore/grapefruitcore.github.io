@@ -30,13 +30,45 @@ def get_world_context_from_db() -> str:
         print(f"[Error getting world context]: {e}")
         return ""
 
-async def generate_completion(prompt: str, max_tokens: int = 150, temperature: float = 0.8, stop: list = None) -> str:
+from datetime import datetime
+
+# Global debug log list
+DEBUG_LOGS = []
+
+def log_debug_api_call(api_type: str, prompt: str, response: str, status: str = "success"):
+    """
+    Logs an API call. Keeps the last 50 calls in memory.
+    """
+    DEBUG_LOGS.append({
+        "timestamp": datetime.now().isoformat(),
+        "api_type": api_type,
+        "prompt": prompt,
+        "response": response,
+        "status": status
+    })
+    # Keep only the last 50 calls
+    if len(DEBUG_LOGS) > 50:
+        DEBUG_LOGS.pop(0)
+
+async def generate_completion(
+    prompt: str,
+    max_tokens: int = 150,
+    temperature: float = 0.8,
+    stop: list = None,
+    log_type: str = "Completion"
+) -> str:
     """
     Sends a completion request to the NovelAI OpenAI-compatible completions endpoint.
     """
     if not NOVELAI_API_KEY:
         # If API key is missing, log a warning and return mock/empty response to keep app running in offline dev mode
         print("[WARNING] NOVELAI_API_KEY is not set. Using empty string fallback.")
+        log_debug_api_call(
+            api_type=log_type,
+            prompt=prompt,
+            response="[WARNING] NOVELAI_API_KEY is not set. Returned empty string fallback.",
+            status="warning"
+        )
         return ""
 
     headers = {
@@ -61,12 +93,33 @@ async def generate_completion(prompt: str, max_tokens: int = 150, temperature: f
             response = await client.post(url, json=payload, headers=headers)
             response.raise_for_status()
             data = response.json()
-            return data["choices"][0]["text"]
+            result = data["choices"][0]["text"]
+            log_debug_api_call(
+                api_type=log_type,
+                prompt=prompt,
+                response=result,
+                status="success"
+            )
+            return result
     except httpx.HTTPStatusError as e:
-        print(f"[Error] NovelAI API returned error status {e.response.status_code}: {e.response.text}")
+        err_msg = f"[Error] NovelAI API returned error status {e.response.status_code}: {e.response.text}"
+        print(err_msg)
+        log_debug_api_call(
+            api_type=log_type,
+            prompt=prompt,
+            response=err_msg,
+            status="error"
+        )
         raise e
     except Exception as e:
-        print(f"[Error] Failed to connect to NovelAI API: {e}")
+        err_msg = f"[Error] Failed to connect to NovelAI API: {e}"
+        print(err_msg)
+        log_debug_api_call(
+            api_type=log_type,
+            prompt=prompt,
+            response=err_msg,
+            status="error"
+        )
         raise e
 
 def parse_generated_posts(text: str) -> list:
@@ -300,7 +353,7 @@ async def generate_timeline_posts(community_name: str, seed_history: str = "") -
         )
     
     try:
-        raw_output = await generate_completion(prompt, max_tokens=300, temperature=0.85)
+        raw_output = await generate_completion(prompt, max_tokens=300, temperature=0.85, log_type="Timeline Posts")
         if not raw_output:
             return DEFAULT_FALLBACK_POSTS
         parsed = parse_generated_posts(raw_output)
@@ -365,7 +418,7 @@ async def generate_dm_reply(char_name: str, char_handle: str, char_bio: str, cha
     )
     
     try:
-        raw_output = await generate_completion(prompt, max_tokens=150, temperature=0.75, stop=[f"\n{char_name}", "\nMessage History:"])
+        raw_output = await generate_completion(prompt, max_tokens=150, temperature=0.75, stop=[f"\n{char_name}", "\nMessage History:"], log_type="DM Reply")
         # Since we prefilled "Vibe:", prepend it back to raw_output to parse correctly
         full_text = "Vibe:" + raw_output
         return parse_dm_response(full_text)
@@ -439,28 +492,15 @@ async def generate_thread_reply(
     )
     
     try:
-        raw_output = await generate_completion(prompt, max_tokens=80, temperature=0.8, stop=["\n@", "\n----"])
+        raw_output = await generate_completion(prompt, max_tokens=80, temperature=0.8, stop=["\n@", "\n----"], log_type="Thread Reply")
         reply = raw_output.strip()
         
         # Check for bracketed placeholders like [reply here] or [insert response]
         placeholder_pat = r'\[(?:reply|response|insert|write|text|content|comment|here).*?\]'
         if re.search(placeholder_pat, reply, re.IGNORECASE) or not reply:
             # Fallback attempt with a lower temperature
-            raw_output = await generate_completion(prompt, max_tokens=80, temperature=0.5, stop=["\n@", "\n----"])
+            raw_output = await generate_completion(prompt, max_tokens=80, temperature=0.5, stop=["\n@", "\n----"], log_type="Thread Reply (Retry)")
             reply = raw_output.strip()
-            
-            if re.search(placeholder_pat, reply, re.IGNORECASE) or not reply:
-                # Character-specific defaults to maintain immersion
-                defaults = {
-                    "@notdaine": "hahaha true",
-                    "@darcyebaylis": "yeah honestly",
-                    "@carolinecalloway": "omg details please",
-                    "@avgcowgirl": "real",
-                    "@ninajirachi": "lmao wait what",
-                    "@quannnic": "so true",
-                    "@photographicmemory": "damn"
-                }
-                reply = defaults.get(char_handle, "yeah")
                 
         if replying_to_user:
             # Check if the generated output already starts with or includes the handle to avoid repetition
@@ -513,7 +553,7 @@ async def generate_gossip_headline(char_a_name: str, char_b_name: str, recent_ev
     prompt += "Headline:"
     
     try:
-        raw_output = await generate_completion(prompt, max_tokens=40, temperature=0.85, stop=["\n"])
+        raw_output = await generate_completion(prompt, max_tokens=40, temperature=0.85, stop=["\n"], log_type="Gossip Headline")
         return raw_output.strip()
     except Exception:
         return f"EXCLUSIVE: Rumors swirling about {char_a_name} and {char_b_name} after a mysterious studio sighting last night!"
@@ -535,7 +575,7 @@ async def generate_narrative_outcome(context_desc: str, user_reply: str) -> str:
         f"Outcome:"
     )
     try:
-        raw_output = await generate_completion(prompt, max_tokens=50, temperature=0.8, stop=["\n"])
+        raw_output = await generate_completion(prompt, max_tokens=50, temperature=0.8, stop=["\n"], log_type="Narrative Outcome")
         return raw_output.strip().replace('"', '')
     except Exception:
         return "The digital air shifted slightly as the community took note of the player's response."
@@ -563,7 +603,7 @@ async def generate_social_event(characters_info: list) -> str:
         f"Event:"
     )
     try:
-        raw_output = await generate_completion(prompt, max_tokens=180, temperature=0.85)
+        raw_output = await generate_completion(prompt, max_tokens=180, temperature=0.85, log_type="Social Dilemma Scenario")
         return raw_output.strip()
     except Exception:
         return f"A rumor starts circulating that Soren and Pop Craze are collaborating secretly. You notice them whispering in the green room. What will you do?"
@@ -586,7 +626,7 @@ async def generate_event_resolution(scenario_text: str, user_action: str) -> str
         f"Resolution:"
     )
     try:
-        raw_output = await generate_completion(prompt, max_tokens=150, temperature=0.8)
+        raw_output = await generate_completion(prompt, max_tokens=150, temperature=0.8, log_type="Social Dilemma Resolution")
         return raw_output.strip()
     except Exception:
         return "Your action resolved the crisis. It positively affected your relationship with Soren, but negatively affected your reputation with Pop Craze."

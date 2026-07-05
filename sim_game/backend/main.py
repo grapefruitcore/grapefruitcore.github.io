@@ -186,7 +186,22 @@ async def run_outcome_generation_task(db_session_factory, trigger_type: str, con
     finally:
         db.close()
 
-# --- API ROUTES ---
+@app.get("/api/debug/logs")
+def read_debug_logs():
+    """
+    Returns the in-memory NovelAI API call debug logs.
+    """
+    from backend.novelai import DEBUG_LOGS
+    return DEBUG_LOGS
+
+@app.delete("/api/debug/logs")
+def clear_debug_logs():
+    """
+    Clears the in-memory NovelAI API call debug logs.
+    """
+    from backend.novelai import DEBUG_LOGS
+    DEBUG_LOGS.clear()
+    return {"status": "success"}
 
 @app.get("/api/timeline")
 def read_timeline(community_id: Optional[int] = None, db: Session = Depends(get_db)):
