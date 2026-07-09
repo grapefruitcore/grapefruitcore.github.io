@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from backend.database import Character, Post, DirectMessage, ConversationSession, Community, Setting, ActivityLog, Event
+from backend.database import Character, Post, DirectMessage, ConversationSession, Community, Setting, ActivityLog, Event, GameState, DailySummary, SideQuest, CharacterRelationship
 import datetime
 
 # --- CHARACTER OPERATIONS ---
@@ -102,12 +102,16 @@ def get_post_thread(db: Session, post_id: int) -> list:
     replies = db.query(Post).filter(Post.parent_id == post_id).order_by(Post.timestamp.asc()).all()
     return [original] + replies
 
-def create_post(db: Session, author_id: int, content: str, community_id: int = None, parent_id: int = None) -> Post:
+def create_post(db: Session, author_id: int, content: str, community_id: int = None, parent_id: int = None, game_day: int = None) -> Post:
+    if game_day is None:
+        state = db.query(GameState).filter(GameState.id == 1).first()
+        game_day = state.current_day if state else 1
     db_post = Post(
         author_id=author_id,
         content=content,
         community_id=community_id,
         parent_id=parent_id,
+        game_day=game_day,
         timestamp=datetime.datetime.utcnow()
     )
     db.add(db_post)
@@ -120,26 +124,53 @@ def create_post(db: Session, author_id: int, content: str, community_id: int = N
 
 def get_dms(db: Session, character_a_id: int, character_b_id: int, limit: int = 50) -> list:
     """
-    Fetches direct messages between two characters.
+    Fetches the most recent direct messages between two characters, ordered chronologically.
     """
-    return db.query(DirectMessage).filter(
+    dms = db.query(DirectMessage).filter(
         ((DirectMessage.sender_id == character_a_id) & (DirectMessage.receiver_id == character_b_id)) |
         ((DirectMessage.sender_id == character_b_id) & (DirectMessage.receiver_id == character_a_id))
-    ).order_by(DirectMessage.timestamp.asc()).limit(limit).all()
+    ).order_by(DirectMessage.timestamp.desc()).limit(limit).all()
+    return list(reversed(dms))
 
-def create_dm(db: Session, sender_id: int, receiver_id: int, content: str, vibe: str = None, intensity: int = None) -> DirectMessage:
+def create_dm(db: Session, sender_id: int, receiver_id: int, content: str, vibe: str = None, intensity: int = None, game_day: int = None) -> DirectMessage:
+    if game_day is None:
+        state = db.query(GameState).filter(GameState.id == 1).first()
+        game_day = state.current_day if state else 1
     db_dm = DirectMessage(
         sender_id=sender_id,
         receiver_id=receiver_id,
         content=content,
         timestamp=datetime.datetime.utcnow(),
         vibe=vibe,
-        intensity=intensity
+        intensity=intensity,
+        game_day=game_day
     )
     db.add(db_dm)
     db.commit()
     db.refresh(db_dm)
-    return db_dm
+def rollback_dms(db: Session, user_id: int, character_id: int, target_dm_id: int) -> bool:
+    """
+    Deletes all messages in a DM thread after a specific target message sent by the user.
+    """
+    # 1. Verify target_dm_id exists, was sent by the user, and involves the specified character
+    target_dm = db.query(DirectMessage).filter(
+        DirectMessage.id == target_dm_id,
+        DirectMessage.sender_id == user_id,
+        DirectMessage.receiver_id == character_id
+    ).first()
+    
+    if not target_dm:
+        return False
+        
+    # 2. Delete all direct messages in this thread sent after target_dm
+    db.query(DirectMessage).filter(
+        ((DirectMessage.sender_id == user_id) & (DirectMessage.receiver_id == character_id)) |
+        ((DirectMessage.sender_id == character_id) & (DirectMessage.receiver_id == user_id)),
+        DirectMessage.id > target_dm_id
+    ).delete(synchronize_session=False)
+    
+    db.commit()
+    return True
 
 
 # --- SESSION & RELATIONSHIP OPERATIONS ---
@@ -168,12 +199,117 @@ def update_conversation_session(db: Session, character_id: int, vibe: str, inten
     db.refresh(session)
     return session
 
+def handle_relationship_progression(db: Session, char, new_score: int):
+    """
+    Handles forward and backward progression of target relationships
+    when bond reaches 100 or drops below 0.
+    """
+    if not char.target_relationship:
+        char.relationship_score = max(0, min(100, new_score))
+        return
+        
+    current_rel = char.target_relationship.strip().lower()
+    
+    # 10 Romance forward stages
+    ROMANCE_FORWARD = ['online crush', 'flirting', 'sparks', 'seeing someone new', 'going steady', 'partner', 'sweetie', 'baby', 'lover', 'soulmate']
+    # 9 Romance backward stages
+    ROMANCE_BACKWARD = ['crushed', 'jealous', "it's complicated", 'situationship', 'fighting', 'not working out', 'torn up', 'heartbreak', 'one that got away']
+    
+    # 10 Hate follow forward stages
+    HATE_FORWARD = ['hate follow', 'subtweeting', 'trolling', 'flame war', 'mutual hate', 'bitter rivals', 'nemesis', 'grudge', 'frenemies', 'toxic obsession']
+    
+    # 10 Collab goal forward stages
+    COLLAB_FORWARD = ['collab goal', 'networking', 'casual jam', 'making plans', 'studio session', 'co-writers', 'joint track', 'bandmates', 'creative partners', 'musical soulmates']
+    
+    # Identify scale and current index
+    scale = None
+    lst = []
+    idx = -1
+    
+    if current_rel in ROMANCE_FORWARD:
+        scale = "romance_forward"
+        lst = ROMANCE_FORWARD
+        idx = lst.index(current_rel)
+    elif current_rel in ROMANCE_BACKWARD:
+        scale = "romance_backward"
+        lst = ROMANCE_BACKWARD
+        idx = lst.index(current_rel)
+    elif current_rel in HATE_FORWARD:
+        scale = "hate"
+        lst = HATE_FORWARD
+        idx = lst.index(current_rel)
+    elif current_rel in COLLAB_FORWARD:
+        scale = "collab"
+        lst = COLLAB_FORWARD
+        idx = lst.index(current_rel)
+    else:
+        # Fallback if custom text was saved: map to nearest scale or treat as romance_forward
+        scale = "romance_forward"
+        lst = ROMANCE_FORWARD
+        idx = 0
+        char.target_relationship = ROMANCE_FORWARD[0]
+        
+    if new_score >= 100:
+        if scale == "romance_backward":
+            if idx == 0:
+                char.target_relationship = ROMANCE_FORWARD[0] # crushed -> online crush
+            else:
+                char.target_relationship = ROMANCE_BACKWARD[idx - 1] # e.g. jealous -> crushed
+            char.relationship_score = 0
+        else:
+            if idx < len(lst) - 1:
+                char.target_relationship = lst[idx + 1]
+                char.relationship_score = 0
+            else:
+                char.relationship_score = 100 # capped at max stage
+    elif new_score <= 0:
+        if scale == "romance_forward":
+            if idx == 0:
+                char.target_relationship = ROMANCE_BACKWARD[0] # online crush -> crushed (backward scale)
+                char.relationship_score = 50
+            else:
+                char.target_relationship = lst[idx - 1] # e.g. flirting -> online crush
+                char.relationship_score = 50
+        elif scale == "romance_backward":
+            if idx < len(lst) - 1:
+                char.target_relationship = lst[idx + 1] # e.g. crushed -> jealous
+                char.relationship_score = 50
+            else:
+                char.relationship_score = 0 # capped at end of negative scale
+        elif scale in ("hate", "collab"):
+            if idx > 0:
+                char.target_relationship = lst[idx - 1]
+                char.relationship_score = 50
+            else:
+                char.relationship_score = 0
+    else:
+        char.relationship_score = new_score
+
 def increment_relationship_score(db: Session, character_id: int, amount: int) -> int:
     char = get_character_by_id(db, character_id)
     if char and not char.is_user:
-        char.relationship_score = max(0, min(100, char.relationship_score + amount))
+        old_rel = char.target_relationship
+        new_score = char.relationship_score + amount
+        
+        handle_relationship_progression(db, char, new_score)
+        
         db.commit()
         db.refresh(char)
+        
+        # Log progression if relationship status changed
+        if old_rel != char.target_relationship and char.target_relationship:
+            from backend.database import GameState, ActivityLog
+            state = db.query(GameState).filter(GameState.id == 1).first()
+            day = state.current_day if state else 1
+            log_entry = ActivityLog(
+                trigger_type="Relationship Progression",
+                narrative_outcome=f"Your relationship status with {char.name} shifted to '{char.target_relationship}'!",
+                associated_character_id=char.id,
+                game_day=day
+            )
+            db.add(log_entry)
+            db.commit()
+            
         return char.relationship_score
     return 0
 
@@ -263,7 +399,10 @@ def delete_post(db: Session, post_id: int) -> bool:
 def get_activity_logs(db: Session, limit: int = 50) -> list:
     return db.query(ActivityLog).order_by(ActivityLog.timestamp.desc()).limit(limit).all()
 
-def log_activity(db: Session, trigger_type: str, narrative_outcome: str, xp_gained: int, relationship_change: int, associated_character_id: int = None, associated_post_id: int = None, associated_dm_id: int = None) -> ActivityLog:
+def log_activity(db: Session, trigger_type: str, narrative_outcome: str, xp_gained: int, relationship_change: int, associated_character_id: int = None, associated_post_id: int = None, associated_dm_id: int = None, game_day: int = None) -> ActivityLog:
+    if game_day is None:
+        state = db.query(GameState).filter(GameState.id == 1).first()
+        game_day = state.current_day if state else 1
     db_log = ActivityLog(
         trigger_type=trigger_type,
         narrative_outcome=narrative_outcome,
@@ -272,6 +411,7 @@ def log_activity(db: Session, trigger_type: str, narrative_outcome: str, xp_gain
         associated_character_id=associated_character_id,
         associated_post_id=associated_post_id,
         associated_dm_id=associated_dm_id,
+        game_day=game_day,
         timestamp=datetime.datetime.utcnow()
     )
     db.add(db_log)
@@ -399,7 +539,7 @@ def get_character_social_context(db: Session, character_id: int) -> str:
         
     char = db.query(Character).filter_by(id=character_id).first()
     name = char.name if char else "Character"
-    return f"[ {name}'s Relationships: {', '.join(lines)} ]"
+    return f"{{ {name}'s Relationships: {', '.join(lines)} }}"
 
 def get_character_relationship_context(db: Session, character_id: int) -> str:
     from backend.database import Character, Post, DirectMessage
@@ -443,15 +583,12 @@ def get_character_relationship_context(db: Session, character_id: int) -> str:
     else:
         parts.append("Recent Public Post Exchanges: None.")
         
-    # 4. DM Conversation History
-    dms = db.query(DirectMessage).filter(
-        ((DirectMessage.sender_id == user.id) & (DirectMessage.receiver_id == character_id)) |
-        ((DirectMessage.sender_id == character_id) & (DirectMessage.receiver_id == user.id))
-    ).order_by(DirectMessage.timestamp.asc()).all()
+    # 4. DM Conversation History (Increased limit to 30)
+    dms = get_dms(db, user.id, character_id, limit=30)
     
     if dms:
         dm_lines = []
-        for dm in dms[-8:]:  # Get last 8 DMs
+        for dm in dms:
             sender_name = "User" if dm.sender_id == user.id else char.name
             dm_lines.append(f"- {sender_name}: \"{dm.content}\"")
         parts.append("Recent Direct Message (DM) History:\n" + "\n".join(dm_lines))
@@ -465,11 +602,156 @@ def get_character_relationship_context(db: Session, character_id: int) -> str:
     else:
         parts.append("Relationships with other characters: None.")
         
-    return "[ RELATIONSHIP & CONVERSATION CONTEXT ]\n" + "\n".join(parts) + "\n"
+    return "{ RELATIONSHIP & CONVERSATION CONTEXT:\n" + "\n".join(parts) + " }\n"
 
 def clear_activity_logs(db: Session):
     from backend.database import ActivityLog
     db.query(ActivityLog).delete()
     db.commit()
+
+def get_game_state(db: Session) -> GameState:
+    state = db.query(GameState).filter(GameState.id == 1).first()
+    if not state:
+        state = GameState(
+            id=1,
+            current_day=1,
+            available_skill_points=0,
+            overarching_narrative="You started your music fan journey in the local underground scene.",
+            has_batched_posts=False,
+            daily_action_count=0,
+            xp=0,
+            level=1,
+            empathy_pts=0,
+            fame_pts=0,
+            relevance_pts=0
+        )
+        db.add(state)
+        db.commit()
+        db.refresh(state)
+    return state
+
+def gain_xp(db: Session, amount: int) -> dict:
+    state = get_game_state(db)
+    state.xp += amount
+    
+    new_level = (state.xp // 100) + 1
+    level_up = False
+    if new_level > state.level:
+        levels_gained = new_level - state.level
+        state.level = new_level
+        state.available_skill_points += levels_gained
+        level_up = True
+    db.commit()
+    db.refresh(state)
+    return {"level_up": level_up, "new_level": state.level, "total_xp": state.xp}
+
+def increment_daily_action_count(db: Session) -> int:
+    state = get_game_state(db)
+    state.daily_action_count += 1
+    db.commit()
+    db.refresh(state)
+    return state.daily_action_count
+
+def check_side_quests(db: Session, action_type: str, character_id: int = None, community_id: int = None) -> list:
+    active_quests = db.query(SideQuest).filter(SideQuest.status == "active").all()
+    completed_quests = []
+    
+    for quest in active_quests:
+        completed = False
+        desc_lower = quest.description.lower()
+        
+        if action_type == "DM":
+            if quest.associated_character_id and quest.associated_character_id == character_id:
+                completed = True
+            elif not quest.associated_character_id and "message" in desc_lower:
+                completed = True
+        elif action_type == "Thread_Reply":
+            if "reply" in desc_lower or "thread" in desc_lower:
+                completed = True
+        elif action_type == "Post":
+            if "post" in desc_lower or "update" in desc_lower:
+                completed = True
+        elif action_type == "Event_Choice":
+            if "event" in desc_lower or "dilemma" in desc_lower or "choice" in desc_lower:
+                completed = True
+                
+        if completed:
+            quest.status = "completed"
+            gain_xp(db, quest.reward_xp)
+            log_activity(
+                db=db,
+                trigger_type="Quest_Complete",
+                narrative_outcome=f"Quest Completed: {quest.description}",
+                xp_gained=quest.reward_xp,
+                relationship_change=0,
+                associated_character_id=quest.associated_character_id
+            )
+            completed_quests.append(quest)
+            
+    if completed_quests:
+        db.commit()
+        
+    return completed_quests
+
+def generate_new_day_quests(db: Session, day: int):
+    # Clear any old active quests to keep them fresh
+    db.query(SideQuest).filter(SideQuest.status == "active").delete()
+    
+    chars = db.query(Character).filter(Character.is_user == False, Character.handle != "@popcraze").all()
+    
+    templates = [
+        {"description": "Send a direct message to a scene member", "reward_xp": 20},
+        {"description": "Reply to a public post thread", "reward_xp": 15},
+        {"description": "Post a status update on your timeline", "reward_xp": 15},
+        {"description": "Resolve a social dilemma event", "reward_xp": 25}
+    ]
+    
+    import random
+    mutuals = [c for c in chars if c.following]
+    if len(mutuals) >= 1:
+        char_a = random.choice(mutuals)
+        templates.append({
+            "description": f"Send a direct message to {char_a.name} ({char_a.handle})",
+            "reward_xp": 25,
+            "associated_character_id": char_a.id
+        })
+    if len(mutuals) >= 2:
+        char_b = [c for c in mutuals if c.id != char_a.id][0]
+        templates.append({
+            "description": f"Strengthen your bond with {char_b.name} ({char_b.handle})",
+            "reward_xp": 25,
+            "associated_character_id": char_b.id
+        })
+        
+    random.shuffle(templates)
+    selected = templates[:3]
+    for t in selected:
+        quest = SideQuest(
+            description=t["description"],
+            reward_xp=t["reward_xp"],
+            associated_character_id=t.get("associated_character_id"),
+            status="active"
+        )
+        db.add(quest)
+    db.commit()
+
+def allocate_skill_point(db: Session, skill_name: str) -> bool:
+    state = get_game_state(db)
+    if state.available_skill_points <= 0:
+        return False
+        
+    if skill_name == "empathy":
+        state.empathy_pts += 1
+    elif skill_name == "fame":
+        state.fame_pts += 1
+    elif skill_name == "relevance":
+        state.relevance_pts += 1
+    else:
+        return False
+        
+    state.available_skill_points -= 1
+    db.commit()
+    db.refresh(state)
+    return True
 
 

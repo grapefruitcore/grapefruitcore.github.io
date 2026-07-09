@@ -15,6 +15,7 @@ const state = {
     editingCharacterRelationships: [],
     characterRelationships: {},
     previousView: 'view-timeline',
+    gameState: null,
 };
 
 // DOM Elements
@@ -89,6 +90,31 @@ function formatTime(isoString) {
 // HELPER: Sleep for typing delay
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// HELPER: Render [image: description] tags as styled placeholder cards
+function renderImageTags(text) {
+    if (!text || !text.includes('[image:')) return text;
+    return text.replace(/\[image:\s*([^\]]+)\]/gi, (_, desc) => {
+        const trimmed = desc.trim();
+        return `<span class="inline-image-block" style="
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0,240,255,0.06);
+            border: 1px solid rgba(0,240,255,0.2);
+            border-radius: 8px;
+            padding: 6px 10px;
+            margin: 2px 0;
+            font-size: 12.5px;
+            color: var(--accent-cyan);
+            font-style: italic;
+            vertical-align: middle;
+        ">
+            <span style="font-size:16px; line-height:1;">📷</span>
+            <span style="color:var(--text-secondary);">${trimmed}</span>
+        </span>`;
+    });
+}
+
 // INITIALIZE APP
 document.addEventListener('DOMContentLoaded', async () => {
     setupNavigation();
@@ -97,6 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadCommunities();
     await loadCharacters();
     await loadTimeline();
+    await loadGameState();
     await checkForActiveEvent();
     setupEventListeners();
 });
@@ -326,6 +353,7 @@ async function loadCharacters() {
             }
             renderSidebarRelationshipList();
             populateConnectionDropdowns();
+            updateGameUI();
         }
     } catch (err) {
         console.error("Error loading characters:", err);
@@ -350,6 +378,135 @@ async function loadTimeline(communityId = null) {
     }
 }
 
+async function loadGameState() {
+    try {
+        const res = await fetch('/api/game/state');
+        if (res.ok) {
+            state.gameState = await res.json();
+            updateGameUI();
+        }
+    } catch (err) {
+        console.error("Error loading game state:", err);
+    }
+}
+
+function updateGameUI() {
+    if (!state.gameState) return;
+
+    // 1. Update Day label
+    const dayLabel = document.getElementById("status-day-val");
+    if (dayLabel) {
+        dayLabel.textContent = `Day ${state.gameState.current_day}`;
+    }
+
+    // 2. Update Milestone Progress Bar tracking active Focus connection
+    const milestoneText = document.getElementById("global-milestone-text");
+    const milestoneFill = document.getElementById("global-milestone-fill");
+    
+    if (milestoneText && milestoneFill) {
+        // Find the character that has a target relationship set
+        const focusChar = state.characters.find(c => c.target_relationship);
+        if (focusChar) {
+            milestoneText.textContent = `Focus: ${focusChar.name} (${focusChar.target_relationship}) — ${focusChar.relationship_score}/100 Bond`;
+            milestoneFill.style.width = `${focusChar.relationship_score}%`;
+        } else {
+            milestoneText.textContent = "Focus: None (Select Focus connection in character profile)";
+            milestoneFill.style.width = "0%";
+        }
+    }
+
+    // 3. Update XP and Level
+    const lvlBadge = document.getElementById("global-level-badge");
+    const xpText = document.getElementById("global-xp-text");
+    if (lvlBadge && xpText) {
+        lvlBadge.textContent = `LVL ${state.gameState.level}`;
+        const currentLevelXp = state.gameState.xp % 100;
+        xpText.textContent = `${currentLevelXp} / 100 XP`;
+    }
+
+    // 4. Update Active Side Quests
+    const questsListEl = document.getElementById("timeline-side-quests-list");
+    if (questsListEl) {
+        if (state.gameState.quests.length === 0) {
+            questsListEl.innerHTML = '<div class="loading-placeholder" style="padding:10px;">All quests completed for today!</div>';
+        } else {
+            questsListEl.innerHTML = '';
+            state.gameState.quests.forEach(q => {
+                const questDiv = document.createElement("div");
+                const isComp = q.status === 'completed';
+                questDiv.className = `side-quest-item ${isComp ? 'completed' : ''}`;
+                questDiv.style.cssText = `
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    background: ${isComp ? 'rgba(0, 255, 128, 0.03)' : 'rgba(255, 255, 255, 0.02)'};
+                    border: 1px solid ${isComp ? 'rgba(0, 255, 128, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
+                    padding: 10px 14px;
+                    border-radius: 8px;
+                    transition: all 0.2s;
+                    opacity: ${isComp ? '0.6' : '1'};
+                    text-decoration: ${isComp ? 'line-through' : 'none'};
+                `;
+                questDiv.innerHTML = `
+                    <span class="quest-desc" style="font-size: 13.5px; color: ${isComp ? 'var(--text-muted)' : 'var(--text-primary)'};">${q.description}</span>
+                    <span class="quest-reward" style="font-family: monospace; font-size: 11px; font-weight: 700; color: ${isComp ? '#00ff80' : 'var(--accent-cyan)'}; background: ${isComp ? 'rgba(0, 255, 128, 0.1)' : 'rgba(0, 240, 255, 0.1)'}; padding: 2px 6px; border-radius: 4px;">+${q.reward_xp} XP</span>
+                `;
+                questsListEl.appendChild(questDiv);
+            });
+        }
+    }
+
+    // 5. Update End Day / Sleep progression controls
+    const btnEndDay = document.getElementById("btn-end-day");
+    const dayProgressionReqs = document.getElementById("day-progression-reqs");
+    
+    if (btnEndDay && dayProgressionReqs) {
+        const hasBatched = state.gameState.has_batched_posts;
+        const todayXp = state.gameState.today_xp;
+        const requiredXp = 20;
+        
+        dayProgressionReqs.innerHTML = `
+            Requires batching posts (${hasBatched ? '✔️ Done' : '❌ Required'}) <br/>
+            and earning 20 XP today (${todayXp >= requiredXp ? '✔️' : '❌'} ${todayXp}/${requiredXp} XP)
+        `;
+        
+        btnEndDay.disabled = !hasBatched || todayXp < requiredXp;
+    }
+
+    // 6. Update Skills and Points allocation
+    const unspentPointsBadge = document.getElementById("profile-unspent-points-badge");
+    const skillEmpathy = document.getElementById("skill-empathy-val");
+    const skillFame = document.getElementById("skill-fame-val");
+    const skillRelevance = document.getElementById("skill-relevance-val");
+    
+    if (unspentPointsBadge) {
+        unspentPointsBadge.textContent = `${state.gameState.available_skill_points} Skill Points Available`;
+        if (state.gameState.available_skill_points > 0) {
+            unspentPointsBadge.style.background = 'var(--accent-pink)';
+            unspentPointsBadge.style.color = '#000';
+        } else {
+            unspentPointsBadge.style.background = 'rgba(255,255,255,0.05)';
+            unspentPointsBadge.style.color = 'var(--text-muted)';
+        }
+    }
+    
+    if (skillEmpathy) skillEmpathy.textContent = state.gameState.empathy_pts;
+    if (skillFame) skillFame.textContent = state.gameState.fame_pts;
+    if (skillRelevance) skillRelevance.textContent = state.gameState.relevance_pts;
+    
+    const allocBtns = document.querySelectorAll(".btn-allocate-skill");
+    allocBtns.forEach(btn => {
+        btn.style.display = state.gameState.available_skill_points > 0 ? "inline-flex" : "none";
+    });
+
+    // 7. Update DM Unread Notification badge on sidebar
+    const dmBadge = document.getElementById("dm-notification-badge");
+    if (dmBadge) {
+        const hasAnyUnread = state.characters.some(char => char.following && char.has_unread);
+        dmBadge.style.display = hasAnyUnread ? 'inline-block' : 'none';
+    }
+}
+
 // RENDERING TIMELINE
 function renderTimeline() {
     if (state.posts.length === 0) {
@@ -358,7 +515,29 @@ function renderTimeline() {
     }
     
     timelineFeed.innerHTML = '';
+    let lastDay = null;
     state.posts.forEach(post => {
+        const postDay = post.game_day || 1;
+        if (postDay !== lastDay) {
+            const separator = document.createElement('div');
+            separator.className = 'day-marker';
+            separator.style.cssText = `
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 20px 0 10px 0;
+                width: 100%;
+                user-select: none;
+            `;
+            separator.innerHTML = `
+                <div style="flex-grow: 1; height: 1px; background: rgba(255,255,255,0.08);"></div>
+                <span style="padding: 0 15px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent-cyan); background: rgba(0, 240, 255, 0.08); border: 1px solid rgba(0, 240, 255, 0.2); border-radius: 20px; padding: 4px 12px;">Day ${postDay}</span>
+                <div style="flex-grow: 1; height: 1px; background: rgba(255,255,255,0.08);"></div>
+            `;
+            timelineFeed.appendChild(separator);
+            lastDay = postDay;
+        }
+
         const postCard = document.createElement('div');
         postCard.className = 'card post-card';
         postCard.dataset.id = post.id;
@@ -390,7 +569,7 @@ function renderTimeline() {
                 <div class="post-time">${formatTime(post.timestamp)}</div>
                 ${deleteBtn}
             </div>
-            <div class="post-body">${post.content}</div>
+            <div class="post-body">${renderImageTags(post.content)}</div>
             <div class="post-footer">
                 <div class="post-action replies-btn">
                     <span>💬</span> <strong>${post.replies_count}</strong> replies
@@ -451,6 +630,7 @@ async function loadThreadDetails() {
         if (res.ok) {
             const threadData = await res.json();
             renderThread(threadData);
+            await loadGameState();
         }
     } catch (err) {
         console.error("Error loading thread details:", err);
@@ -495,7 +675,7 @@ function renderThread(threadData) {
             <div class="post-time">${formatTime(parentPost.timestamp)}</div>
             ${parentDeleteBtn}
         </div>
-        <div class="post-body">${parentPost.content}</div>
+        <div class="post-body">${renderImageTags(parentPost.content)}</div>
     `;
     threadPostsContainer.appendChild(parentCard);
 
@@ -524,7 +704,7 @@ function renderThread(threadData) {
                 <div class="post-time">${formatTime(reply.timestamp)}</div>
                 ${replyDeleteBtn}
             </div>
-            <div class="post-body">${reply.content}</div>
+            <div class="post-body">${renderImageTags(reply.content)}</div>
         `;
         threadPostsContainer.appendChild(replyCard);
     });
@@ -604,11 +784,15 @@ function renderDMContacts() {
             ? `<span style="font-size:10px; background:rgba(255, 0, 128, 0.15); padding:1px 5px; border-radius:4px; margin-left:4px; font-weight:600; color:var(--accent-pink);">${char.target_relationship}</span>`
             : '';
 
+        const unreadDot = char.has_unread 
+            ? `<span style="display:inline-block; width:8px; height:8px; background-color:var(--accent-pink); border-radius:50%; margin-left:6px;" title="New message"></span>`
+            : '';
+
         card.innerHTML = `
             ${avatar}
             <div class="contact-info">
                 <div class="contact-name-row">
-                    <div class="contact-name">${char.name} ${targetRelTag}</div>
+                    <div class="contact-name">${char.name} ${targetRelTag} ${unreadDot}</div>
                     <div class="contact-rel-pill">${char.relationship_score} Rel</div>
                 </div>
                 <div class="contact-status-preview">${char.bio}</div>
@@ -642,6 +826,14 @@ async function loadChatHistory() {
         if (res.ok) {
             const data = await res.json();
             renderActiveChat(data);
+            
+            // Clear unread status locally for active character
+            const targetChar = state.characters.find(c => c.id === state.activeChatCharId);
+            if (targetChar) {
+                targetChar.has_unread = false;
+            }
+            renderDMContacts();
+            updateGameUI();
         }
     } catch (err) {
         console.error("Error loading chat history:", err);
@@ -668,14 +860,47 @@ function renderActiveChat(data) {
     
     // Render Message bubbles
     chatMessagesContainer.innerHTML = '';
+    state.activeChatLastDay = null; // Reset last day tracker
     messages.forEach(msg => {
-        appendMessageBubble(msg.sender_id === state.currentUser.id ? 'sent' : 'received', msg.content, msg.vibe, msg.intensity);
+        appendMessageBubble(
+            msg.sender_id === state.currentUser.id ? 'sent' : 'received',
+            msg.content,
+            msg.vibe,
+            msg.intensity,
+            msg.game_day,
+            msg.id
+        );
     });
     
     chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
 }
 
-function appendMessageBubble(type, content, vibe = null, intensity = null) {
+function appendMessageBubble(type, content, vibe = null, intensity = null, gameDay = null, msgId = null) {
+    if (gameDay === null) {
+        // Fall back to current game day if not specified (e.g. for user sent / AI generated live replies)
+        gameDay = (state.gameState && state.gameState.current_day) ? state.gameState.current_day : 1;
+    }
+
+    if (state.activeChatLastDay !== gameDay) {
+        const separator = document.createElement('div');
+        separator.className = 'day-marker dm-day-marker';
+        separator.style.cssText = `
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 15px 0 10px 0;
+            width: 100%;
+            user-select: none;
+        `;
+        separator.innerHTML = `
+            <div style="flex-grow: 1; height: 1px; background: rgba(255,255,255,0.05);"></div>
+            <span style="padding: 0 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent-pink); background: rgba(255, 0, 128, 0.05); border: 1px solid rgba(255, 0, 128, 0.15); border-radius: 20px; padding: 2px 10px;">Day ${gameDay}</span>
+            <div style="flex-grow: 1; height: 1px; background: rgba(255,255,255,0.05);"></div>
+        `;
+        chatMessagesContainer.appendChild(separator);
+        state.activeChatLastDay = gameDay;
+    }
+
     const msgWrap = document.createElement('div');
     msgWrap.className = `msg-wrapper ${type}`;
     
@@ -684,14 +909,59 @@ function appendMessageBubble(type, content, vibe = null, intensity = null) {
         vibeMeta = `<div class="msg-vibe-tag">🎭 ${vibe} (${intensity}%)</div>`;
     }
     
+    let rollbackBtn = '';
+    if (type === 'sent' && msgId) {
+        rollbackBtn = `
+            <button class="dm-rollback-btn" data-id="${msgId}" title="Rewind chat history to this message" style="
+                background: none;
+                border: none;
+                color: var(--text-muted);
+                font-size: 10px;
+                cursor: pointer;
+                padding: 2px 6px;
+                border-radius: 4px;
+                margin-top: 4px;
+                align-self: flex-end;
+                transition: color 0.2s, background-color 0.2s;
+            " onmouseover="this.style.color='var(--accent-pink)'; this.style.backgroundColor='rgba(255,0,128,0.05)'" onmouseout="this.style.color='var(--text-muted)'; this.style.backgroundColor='transparent'">
+                ↩ Rewind Here
+            </button>
+        `;
+    }
+    
     msgWrap.innerHTML = `
         <div class="msg-bubble">
-            <div class="msg-content">${content}</div>
+            <div class="msg-content">${renderImageTags(content)}</div>
             ${vibeMeta}
         </div>
+        ${rollbackBtn}
     `;
     
     chatMessagesContainer.appendChild(msgWrap);
+    
+    // Wire up rollback click listener if button exists
+    const btn = msgWrap.querySelector('.dm-rollback-btn');
+    if (btn) {
+        btn.addEventListener('click', async () => {
+            if (confirm("Are you sure you want to rewind the chat history to this message? All subsequent messages from both you and this character will be permanently erased.")) {
+                try {
+                    const res = await fetch(`/api/dms/rollback/${state.activeChatCharId}/${msgId}`, { method: 'POST' });
+                    if (res.ok) {
+                        await loadChatHistory();
+                        await loadCharacters();
+                        renderDMContacts();
+                    } else {
+                        const err = await res.json();
+                        alert(err.detail || "Failed to rewind chat");
+                    }
+                } catch (err) {
+                    console.error("Error calling rollback:", err);
+                    alert("Connection error.");
+                }
+            }
+        });
+    }
+    
     chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
 }
 
@@ -750,6 +1020,8 @@ async function handleIncomingAIReply(replyData) {
     // Update relationship score in contact list view
     await loadCharacters();
     renderDMContacts();
+    await loadGameState();
+    await loadChatHistory();
 
     // Milestone notifications
     if (replyData.milestone_triggered) {
@@ -1010,7 +1282,19 @@ async function openCharacterProfile(charId) {
     if (char.following) {
         followBtn.className = 'btn btn-secondary';
         relSection.style.display = 'flex';
-        relSelect.value = char.target_relationship || '';
+        let baseRelValue = '';
+        if (char.target_relationship) {
+            const tr = char.target_relationship.toLowerCase();
+            const romance = ['online crush', 'flirting', 'sparks', 'seeing someone new', 'going steady', 'partner', 'sweetie', 'baby', 'lover', 'soulmate', 'crushed', 'jealous', "it's complicated", 'situationship', 'fighting', 'not working out', 'torn up', 'heartbreak', 'one that got away'];
+            const hate = ['hate follow', 'subtweeting', 'trolling', 'flame war', 'mutual hate', 'bitter rivals', 'nemesis', 'grudge', 'frenemies', 'toxic obsession'];
+            const collab = ['collab goal', 'networking', 'casual jam', 'making plans', 'studio session', 'co-writers', 'joint track', 'bandmates', 'creative partners', 'musical soulmates'];
+            
+            if (romance.includes(tr)) baseRelValue = 'online crush';
+            else if (hate.includes(tr)) baseRelValue = 'hate follow';
+            else if (collab.includes(tr)) baseRelValue = 'collab goal';
+            else baseRelValue = char.target_relationship;
+        }
+        relSelect.value = baseRelValue;
     } else {
         followBtn.className = 'btn btn-primary';
         relSection.style.display = 'none';
@@ -1055,7 +1339,72 @@ async function openCharacterProfile(charId) {
             console.error("Error saving target relationship:", err);
         }
     });
-    
+
+    // Tweet History Editor (for NPCs only)
+    const tweetSection = document.getElementById('char-profile-tweet-history-section');
+    const tweetEditorBody = document.getElementById('tweet-editor-body');
+    const tweetToggleBtn = document.getElementById('btn-toggle-tweet-editor');
+    const tweetToggleIcon = document.getElementById('tweet-editor-toggle-icon');
+    const tweetHistoryInput = document.getElementById('char-profile-tweet-history-input');
+    const saveTweetBtn = document.getElementById('btn-save-tweet-history');
+
+    if (!char.is_user && tweetSection) {
+        tweetSection.style.display = 'flex';
+        // Populate textarea with existing tweet history
+        tweetHistoryInput.value = char.tweet_history || '';
+
+        // Collapse toggle
+        const newTweetToggleBtn = tweetToggleBtn.cloneNode(true);
+        tweetToggleBtn.parentNode.replaceChild(newTweetToggleBtn, tweetToggleBtn);
+        newTweetToggleBtn.addEventListener('click', () => {
+            const isOpen = tweetEditorBody.style.display === 'flex';
+            tweetEditorBody.style.display = isOpen ? 'none' : 'flex';
+            document.getElementById('tweet-editor-toggle-icon').style.transform = isOpen ? '' : 'rotate(90deg)';
+        });
+
+        // Save tweet history using existing edit endpoint
+        const newSaveTweetBtn = saveTweetBtn.cloneNode(true);
+        saveTweetBtn.parentNode.replaceChild(newSaveTweetBtn, saveTweetBtn);
+        newSaveTweetBtn.addEventListener('click', async () => {
+            const newHistory = tweetHistoryInput.value.trim();
+            const formData = new FormData();
+            formData.append('name', char.name);
+            formData.append('handle', char.handle);
+            formData.append('bio', char.bio || '');
+            formData.append('avatar_alt_text', char.avatar_alt_text || '');
+            formData.append('tweet_history', newHistory);
+            try {
+                newSaveTweetBtn.disabled = true;
+                newSaveTweetBtn.textContent = 'Saving…';
+                const res = await fetch(`/api/characters/${char.id}/edit`, {
+                    method: 'POST',
+                    body: formData
+                });
+                if (res.ok) {
+                    await loadCharacters();
+                    // Re-enable button before navigating away (openCharacterProfile
+                    // replaces the DOM node via cloneNode, so the old clone must be
+                    // reset first or it stays stuck as "Saving…")
+                    newSaveTweetBtn.textContent = 'Save Archive';
+                    newSaveTweetBtn.disabled = false;
+                    // Re-open the profile to re-render the posts feed with updated history
+                    await openCharacterProfile(char.id);
+                } else {
+                    const err = await res.json();
+                    alert(`Failed to save: ${err.detail || 'Unknown error'}`);
+                    newSaveTweetBtn.textContent = 'Save Archive';
+                    newSaveTweetBtn.disabled = false;
+                }
+            } catch (err) {
+                console.error("Error saving tweet history:", err);
+                newSaveTweetBtn.textContent = 'Save Archive';
+                newSaveTweetBtn.disabled = false;
+            }
+        });
+    } else if (tweetSection) {
+        tweetSection.style.display = 'none';
+    }
+
     // Load and render posts
     try {
         const postsRes = await fetch(`/api/characters/${char.id}/posts`);
@@ -1067,33 +1416,93 @@ async function openCharacterProfile(charId) {
             }
             
             feedEl.innerHTML = '';
+            let lastDay = null;
             posts.forEach(p => {
+                const postDay = p.is_history ? 'Archive' : (p.game_day || 1);
+                if (postDay !== lastDay) {
+                    const separator = document.createElement('div');
+                    separator.className = 'day-marker';
+                    separator.style.cssText = `
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin: 20px 0 10px 0;
+                        width: 100%;
+                        user-select: none;
+                    `;
+                    const label = postDay === 'Archive' ? 'Creation Archive' : `Day ${postDay}`;
+                    const color = postDay === 'Archive' ? 'var(--accent-pink)' : 'var(--accent-cyan)';
+                    const bg = postDay === 'Archive' ? 'rgba(255, 0, 128, 0.08)' : 'rgba(0, 240, 255, 0.08)';
+                    const border = postDay === 'Archive' ? 'rgba(255, 0, 128, 0.2)' : 'rgba(0, 240, 255, 0.2)';
+                    
+                    separator.innerHTML = `
+                        <div style="flex-grow: 1; height: 1px; background: rgba(255,255,255,0.08);"></div>
+                        <span style="padding: 0 15px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: ${color}; background: ${bg}; border: 1px solid ${border}; border-radius: 20px; padding: 4px 12px;">${label}</span>
+                        <div style="flex-grow: 1; height: 1px; background: rgba(255,255,255,0.08);"></div>
+                    `;
+                    feedEl.appendChild(separator);
+                    lastDay = postDay;
+                }
+
                 const card = document.createElement('div');
                 card.className = 'card post-card';
-                
-                const badge = p.is_history 
-                    ? `<span style="font-size: 11px; background: rgba(0, 240, 255, 0.08); border: 1px solid rgba(0, 240, 255, 0.2); padding: 1px 6px; border-radius: 4px; color: var(--accent-cyan); margin-left: 6px;">Creation Archive</span>` 
+
+                const badge = p.is_history
+                    ? `<span style="font-size: 11px; background: rgba(0, 240, 255, 0.08); border: 1px solid rgba(0, 240, 255, 0.2); padding: 1px 6px; border-radius: 4px; color: var(--accent-cyan); margin-left: 6px;">Creation Archive</span>`
                     : '';
-                
+
+                // Delete button only on real (non-archive) posts
+                const deleteBtn = !p.is_history
+                    ? `<button class="profile-post-delete-btn" title="Delete post" style="margin-left:auto; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:14px; padding:2px 6px; border-radius:4px; line-height:1;" onmouseover="this.style.color='var(--accent-pink)'" onmouseout="this.style.color='var(--text-muted)'">✕</button>`
+                    : '';
+
                 card.innerHTML = `
-                    <div class="post-header">
+                    <div class="post-header" style="align-items:flex-start;">
                         ${char.avatar_path ? `<img src="${char.avatar_path}" alt="avatar" class="post-avatar">` : `<div class="post-avatar" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, var(--accent-cyan), var(--accent-pink));font-weight:700;color:#000;">${char.name[0]}</div>`}
                         <div class="post-meta">
                             <div class="post-author-name">${char.name} ${badge}</div>
                             <div class="post-author-handle">${char.handle}</div>
                         </div>
-                        <div class="post-time">${formatTime(p.timestamp)}</div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div class="post-time">${formatTime(p.timestamp)}</div>
+                            ${deleteBtn}
+                        </div>
                     </div>
-                    <div class="post-body" style="margin-top: 12px;">${p.content}</div>
+                    <div class="post-body" style="margin-top: 12px;">${renderImageTags(p.content)}</div>
                 `;
-                
+
                 if (!p.is_history) {
                     card.style.cursor = 'pointer';
                     card.addEventListener('click', () => {
                         openThread(p.id);
                     });
+
+                    // Wire up delete button — stop propagation so it doesn't open thread
+                    const btn = card.querySelector('.profile-post-delete-btn');
+                    if (btn) {
+                        btn.addEventListener('click', async (e) => {
+                            e.stopPropagation();
+                            if (!confirm('Delete this post and its replies?')) return;
+                            try {
+                                const res = await fetch(`/api/posts/${p.id}`, { method: 'DELETE' });
+                                if (res.ok) {
+                                    card.remove();
+                                    // If feed is now empty, show placeholder
+                                    if (feedEl.children.length === 0) {
+                                        feedEl.innerHTML = '<div class="loading-placeholder">No posts by this user yet.</div>';
+                                    }
+                                } else {
+                                    const errData = await res.json();
+                                    alert(errData.detail || 'Failed to delete post');
+                                }
+                            } catch (err) {
+                                console.error('Error deleting post:', err);
+                                alert('Connection error.');
+                            }
+                        });
+                    }
                 }
-                
+
                 feedEl.appendChild(card);
             });
         } else {
@@ -1161,6 +1570,70 @@ function setupEventListeners() {
         loadTimeline(1);
     });
 
+    // ── IMAGE ATTACH: Post Composer ──────────────────────────────────────────
+    const btnPostAttachImg = document.getElementById('btn-post-attach-image');
+    const postImagePopover = document.getElementById('post-image-popover');
+    const postImageDesc    = document.getElementById('post-image-desc');
+    const btnPostImgConfirm = document.getElementById('btn-post-image-confirm');
+    const btnPostImgCancel  = document.getElementById('btn-post-image-cancel');
+
+    if (btnPostAttachImg) {
+        btnPostAttachImg.addEventListener('click', () => {
+            const isOpen = postImagePopover.style.display === 'flex';
+            postImagePopover.style.display = isOpen ? 'none' : 'flex';
+            if (!isOpen) { postImageDesc.value = ''; postImageDesc.focus(); }
+        });
+        btnPostImgConfirm.addEventListener('click', () => {
+            const desc = postImageDesc.value.trim();
+            if (!desc) return;
+            const tag = `[image: ${desc}]`;
+            postContent.value = postContent.value
+                ? postContent.value.trimEnd() + '\n' + tag
+                : tag;
+            postImagePopover.style.display = 'none';
+            postImageDesc.value = '';
+            postContent.focus();
+        });
+        btnPostImgCancel.addEventListener('click', () => {
+            postImagePopover.style.display = 'none';
+        });
+        postImageDesc.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); btnPostImgConfirm.click(); }
+            if (e.key === 'Escape') btnPostImgCancel.click();
+        });
+    }
+
+    // ── IMAGE ATTACH: DM Composer ────────────────────────────────────────────
+    const btnDmAttachImg   = document.getElementById('btn-dm-attach-image');
+    const dmImagePopover   = document.getElementById('dm-image-popover');
+    const dmImageDesc      = document.getElementById('dm-image-desc');
+    const btnDmImgConfirm  = document.getElementById('btn-dm-image-confirm');
+    const btnDmImgCancel   = document.getElementById('btn-dm-image-cancel');
+
+    if (btnDmAttachImg) {
+        btnDmAttachImg.addEventListener('click', () => {
+            const isOpen = dmImagePopover.style.display === 'flex';
+            dmImagePopover.style.display = isOpen ? 'none' : 'flex';
+            if (!isOpen) { dmImageDesc.value = ''; dmImageDesc.focus(); }
+        });
+        btnDmImgConfirm.addEventListener('click', () => {
+            const desc = dmImageDesc.value.trim();
+            if (!desc) return;
+            // Submit the image tag directly as a DM
+            dmInputContent.value = `[image: ${desc}]`;
+            dmImagePopover.style.display = 'none';
+            dmImageDesc.value = '';
+            dmSendForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        });
+        btnDmImgCancel.addEventListener('click', () => {
+            dmImagePopover.style.display = 'none';
+        });
+        dmImageDesc.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); btnDmImgConfirm.click(); }
+            if (e.key === 'Escape') btnDmImgCancel.click();
+        });
+    }
+
     // Create Root Post Form
     postForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -1179,6 +1652,8 @@ function setupEventListeners() {
             if (res.ok) {
                 const data = await res.json();
                 postContent.value = '';
+                await loadGameState();
+                setTimeout(loadGameState, 2000);
                 // Open the thread of the newly created post immediately so the player can watch the cascade replies happen!
                 if (data.post_id) {
                     openThread(data.post_id);
@@ -1209,6 +1684,8 @@ function setupEventListeners() {
                 threadReplyContent.value = '';
                 // Render the thread replies instantly with user's new message
                 await loadThreadDetails();
+                await loadGameState();
+                setTimeout(loadGameState, 2000);
                 
                 // Active typing banner is triggered since user just replied
                 threadTypingBanner.classList.add('active');
@@ -1408,6 +1885,7 @@ function setupEventListeners() {
             if (res.ok) {
                 const data = await res.json();
                 alert(`Successfully generated ${data.posts_generated} timeline posts!`);
+                await loadGameState();
                 const currentTabActiveComm = document.getElementById('tab-community-posts').classList.contains('active') ? 1 : null;
                 await loadTimeline(currentTabActiveComm);
             }
@@ -1428,6 +1906,7 @@ function setupEventListeners() {
             if (res.ok) {
                 const data = await res.json();
                 alert(`GOSSIP OUT NOW: ${data.headline}`);
+                await loadGameState();
                 const currentTabActiveComm = document.getElementById('tab-community-posts').classList.contains('active') ? 1 : null;
                 await loadTimeline(currentTabActiveComm);
             } else {
@@ -1451,6 +1930,7 @@ function setupEventListeners() {
                     const res = await fetch('/api/reset_timeline', { method: 'POST' });
                     if (res.ok) {
                         alert("Timeline reset successfully.");
+                        await loadGameState();
                         const currentTabActiveComm = document.getElementById('tab-community-posts').classList.contains('active') ? 1 : null;
                         await loadTimeline(currentTabActiveComm);
                     }
@@ -1539,6 +2019,7 @@ function setupEventListeners() {
                     `;
 
                     await loadCharacters();
+                    await loadGameState();
                     if (state.currentView === 'view-activity-log') {
                         await loadActivityLog();
                     }
@@ -1680,21 +2161,126 @@ function setupEventListeners() {
     const btnResetActivityLog = document.getElementById('btn-reset-activity-log');
     if (btnResetActivityLog) {
         btnResetActivityLog.addEventListener('click', async () => {
-            if (confirm("Are you sure you want to clear all narrative activity logs?")) {
+            if (confirm("Are you sure you want to clear all narrative activity logs? (This will also reset your game day/level to Day 1)")) {
                 try {
-                    const res = await fetch('/api/reset_activity_log', { method: 'POST' });
+                    const res = await fetch('/api/game/reset', { method: 'POST' });
                     if (res.ok) {
-                        alert("Activity logs cleared successfully.");
+                        alert("Game loop progress and activity logs cleared successfully.");
+                        await loadGameState();
+                        const currentTabActiveComm = document.getElementById('tab-community-posts').classList.contains('active') ? 1 : null;
+                        await loadTimeline(currentTabActiveComm);
+                        await loadCharacters();
                         if (state.currentView === 'view-activity-log') {
                             await loadActivityLog();
                         }
                     }
                 } catch (err) {
-                    console.error("Error resetting activity logs:", err);
+                    console.error("Error resetting game state and activity logs:", err);
                 }
             }
         });
     }
+
+    // Go to Sleep / End Day Listener
+    const btnEndDay = document.getElementById('btn-end-day');
+    if (btnEndDay) {
+        btnEndDay.addEventListener('click', async () => {
+            if (!state.gameState) return;
+            
+            // If action count is 0, prompt confirmation
+            if (state.gameState.daily_action_count === 0) {
+                const proceed = confirm("You haven't interacted with anyone today (no DMs, replies, or event resolutions). Are you sure you want to go to sleep?");
+                if (!proceed) return;
+            }
+            
+            btnEndDay.disabled = true;
+            btnEndDay.textContent = 'Sleeping...';
+            
+            try {
+                const res = await fetch('/api/game/end_day', { method: 'POST' });
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    // Show Day Summary Modal
+                    const modal = document.getElementById("day-summary-modal-backdrop");
+                    const narrativeText = document.getElementById("day-summary-narrative");
+                    const statsList = document.getElementById("day-summary-stats-list");
+                    
+                    if (modal && narrativeText && statsList) {
+                        narrativeText.textContent = data.daily_summary;
+                        
+                        statsList.innerHTML = `
+                            <span class="stat-pill xp" style="align-self: flex-start;">+${data.xp_gained} XP Earned Today</span>
+                        `;
+                        
+                        data.relationship_adjustments.forEach(adj => {
+                            const changeText = adj.change > 0 ? `+${adj.change}` : `${adj.change}`;
+                            const pill = document.createElement("span");
+                            pill.className = `stat-pill ${adj.change > 0 ? 'rel-plus' : 'rel-minus'}`;
+                            pill.style.alignSelf = "flex-start";
+                            pill.textContent = `${adj.character_name}: ${changeText} Bond`;
+                            statsList.appendChild(pill);
+                        });
+                        
+                        modal.style.display = "flex";
+                    } else {
+                        alert(`Day ${data.old_day} ended successfully! Advanced to Day ${data.new_day}.`);
+                    }
+                } else {
+                    const errData = await res.json();
+                    alert(errData.detail || "Failed to end day.");
+                }
+            } catch (err) {
+                console.error("Error ending day:", err);
+                alert("Connection error occurred while ending day.");
+            } finally {
+                btnEndDay.disabled = false;
+                btnEndDay.textContent = 'Go to Sleep';
+                await loadGameState();
+            }
+        });
+    }
+
+    // Close Day Summary Modal Listener
+    const btnCloseDaySummary = document.getElementById('btn-close-day-summary');
+    if (btnCloseDaySummary) {
+        btnCloseDaySummary.addEventListener('click', async () => {
+            const modal = document.getElementById("day-summary-modal-backdrop");
+            if (modal) {
+                modal.style.display = "none";
+            }
+            // Wipe timeline feed and reload active components
+            const currentTabActiveComm = document.getElementById('tab-community-posts').classList.contains('active') ? 1 : null;
+            await loadTimeline(currentTabActiveComm);
+            await loadCharacters();
+            await loadGameState();
+            if (state.currentView === 'view-activity-log') {
+                await loadActivityLog();
+            }
+        });
+    }
+
+    // Skill Points Allocation buttons delegation
+    document.addEventListener('click', async (e) => {
+        if (e.target && e.target.classList.contains('btn-allocate-skill')) {
+            const skillName = e.target.getAttribute('data-skill');
+            try {
+                const res = await fetch('/api/game/allocate_skill', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ skill_name: skillName })
+                });
+                if (res.ok) {
+                    await loadGameState();
+                } else {
+                    const err = await res.json();
+                    alert(err.detail || "Could not allocate skill point.");
+                }
+            } catch (err) {
+                console.error("Error allocating skill point:", err);
+            }
+        }
+    });
 
     // Profile Back button Event Listener
     const btnProfileBack = document.getElementById('btn-profile-back');

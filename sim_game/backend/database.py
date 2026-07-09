@@ -29,6 +29,7 @@ class Character(Base):
     avatar_path = Column(String, nullable=True)
     avatar_alt_text = Column(String, nullable=True)
     tweet_history = Column(Text, nullable=True)
+    has_unread = Column(Boolean, default=False)
 
     # Relationships
     posts = relationship("Post", back_populates="author", foreign_keys="Post.author_id", cascade="all, delete-orphan")
@@ -43,6 +44,7 @@ class Post(Base):
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
     community_id = Column(Integer, ForeignKey("communities.id"), nullable=True)
     parent_id = Column(Integer, ForeignKey("posts.id"), nullable=True)
+    game_day = Column(Integer, default=1)
 
     # Relationships
     author = relationship("Character", back_populates="posts", foreign_keys=[author_id])
@@ -60,6 +62,7 @@ class DirectMessage(Base):
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
     vibe = Column(String, nullable=True)
     intensity = Column(Integer, nullable=True)
+    game_day = Column(Integer, default=1)
 
     sender = relationship("Character", foreign_keys=[sender_id])
     receiver = relationship("Character", foreign_keys=[receiver_id])
@@ -72,6 +75,8 @@ class ConversationSession(Base):
     vibe = Column(String, default="Neutral")
     intensity = Column(Integer, default=50)
     replies_left = Column(Integer, default=5)
+    conversation_summary = Column(Text, nullable=True, default="")
+    summarized_msg_count = Column(Integer, default=0)
 
     character = relationship("Character", back_populates="session")
 
@@ -95,6 +100,7 @@ class ActivityLog(Base):
     associated_character_id = Column(Integer, ForeignKey("characters.id", ondelete="SET NULL"), nullable=True)
     associated_post_id = Column(Integer, ForeignKey("posts.id", ondelete="SET NULL"), nullable=True)
     associated_dm_id = Column(Integer, ForeignKey("direct_messages.id", ondelete="SET NULL"), nullable=True)
+    game_day = Column(Integer, default=1)
 
 class Event(Base):
     __tablename__ = "events"
@@ -124,6 +130,37 @@ class Setting(Base):
     id = Column(Integer, primary_key=True, index=True)
     world_context = Column(Text, default="")
 
+class GameState(Base):
+    __tablename__ = "game_state"
+
+    id = Column(Integer, primary_key=True, index=True)
+    current_day = Column(Integer, default=1)
+    available_skill_points = Column(Integer, default=0)
+    overarching_narrative = Column(Text, default="You started your music fan journey in the local underground scene.")
+    has_batched_posts = Column(Boolean, default=False)
+    daily_action_count = Column(Integer, default=0)
+    xp = Column(Integer, default=0)
+    level = Column(Integer, default=1)
+    empathy_pts = Column(Integer, default=0)
+    fame_pts = Column(Integer, default=0)
+    relevance_pts = Column(Integer, default=0)
+
+class DailySummary(Base):
+    __tablename__ = "daily_summaries"
+
+    day = Column(Integer, primary_key=True)
+    summary_text = Column(Text, nullable=False)
+
+class SideQuest(Base):
+    __tablename__ = "side_quests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    description = Column(String, nullable=False)
+    reward_xp = Column(Integer, default=20)
+    associated_character_id = Column(Integer, ForeignKey("characters.id", ondelete="SET NULL"), nullable=True)
+    target_community = Column(String, nullable=True)
+    status = Column(String, default="active") # 'active', 'completed'
+
 def get_db():
     db = SessionLocal()
     try:
@@ -133,6 +170,59 @@ def get_db():
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    
+    # Self-healing migrations for existing sqlite databases
+    import sqlite3
+    db_path = engine.url.database
+    if db_path and db_path != ":memory:":
+        conn = sqlite3.connect(db_path)
+        try:
+            cursor = conn.cursor()
+            
+            # Check characters table
+            cursor.execute("PRAGMA table_info(characters)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if "has_unread" not in columns:
+                print("Migration: Adding has_unread column to characters table")
+                cursor.execute("ALTER TABLE characters ADD COLUMN has_unread INTEGER DEFAULT 0")
+
+            # Check posts table
+            cursor.execute("PRAGMA table_info(posts)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if "game_day" not in columns:
+                print("Migration: Adding game_day column to posts table")
+                cursor.execute("ALTER TABLE posts ADD COLUMN game_day INTEGER DEFAULT 1")
+                
+            # Check activity_logs table
+            cursor.execute("PRAGMA table_info(activity_logs)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if "game_day" not in columns:
+                print("Migration: Adding game_day column to activity_logs table")
+                cursor.execute("ALTER TABLE activity_logs ADD COLUMN game_day INTEGER DEFAULT 1")
+
+            # Check direct_messages table
+            cursor.execute("PRAGMA table_info(direct_messages)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if "game_day" not in columns:
+                print("Migration: Adding game_day column to direct_messages table")
+                cursor.execute("ALTER TABLE direct_messages ADD COLUMN game_day INTEGER DEFAULT 1")
+
+            # Check conversation_sessions table
+            cursor.execute("PRAGMA table_info(conversation_sessions)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if "conversation_summary" not in columns:
+                print("Migration: Adding conversation_summary column to conversation_sessions table")
+                cursor.execute("ALTER TABLE conversation_sessions ADD COLUMN conversation_summary TEXT DEFAULT ''")
+            if "summarized_msg_count" not in columns:
+                print("Migration: Adding summarized_msg_count column to conversation_sessions table")
+                cursor.execute("ALTER TABLE conversation_sessions ADD COLUMN summarized_msg_count INTEGER DEFAULT 0")
+                
+            conn.commit()
+        except Exception as e:
+            print(f"[Migration Error]: {e}")
+        finally:
+            conn.close()
+
     db = SessionLocal()
     try:
         # Check if settings exist
@@ -385,6 +475,36 @@ def init_db():
                     )
                     db.add(new_rel)
                     db.commit()
+
+        # Seed GameState if missing
+        game_state = db.query(GameState).filter_by(id=1).first()
+        if not game_state:
+            game_state = GameState(
+                id=1,
+                current_day=1,
+                available_skill_points=0,
+                overarching_narrative="You started your music fan journey in the local underground scene.",
+                has_batched_posts=False,
+                daily_action_count=0,
+                xp=0,
+                level=1,
+                empathy_pts=0,
+                fame_pts=0,
+                relevance_pts=0
+            )
+            db.add(game_state)
+            db.commit()
+
+        # Seed initial side quests for Day 1
+        active_quests = db.query(SideQuest).filter_by(status="active").count()
+        if active_quests == 0:
+            initial_quests = [
+                SideQuest(description="Post a status update on your timeline", reward_xp=15, status="active"),
+                SideQuest(description="Reply to a public post thread", reward_xp=15, status="active"),
+                SideQuest(description="Send a direct message to a scene member", reward_xp=20, status="active")
+            ]
+            db.bulk_save_objects(initial_quests)
+            db.commit()
 
     finally:
         db.close()

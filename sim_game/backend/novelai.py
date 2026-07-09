@@ -30,6 +30,99 @@ def get_world_context_from_db() -> str:
         print(f"[Error getting world context]: {e}")
         return ""
 
+def get_overarching_narrative_from_db() -> str:
+    try:
+        from backend.database import SessionLocal, GameState
+        db = SessionLocal()
+        try:
+            state = db.query(GameState).filter_by(id=1).first()
+            return state.overarching_narrative.strip() if (state and state.overarching_narrative) else ""
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"[Error getting overarching narrative]: {e}")
+        return ""
+
+def get_character_roster_from_db() -> str:
+    try:
+        from backend.database import SessionLocal, Character
+        db = SessionLocal()
+        try:
+            chars = db.query(Character).filter(Character.is_user == False, Character.handle != "@popcraze").all()
+            roster_lines = []
+            for c in chars:
+                # Include bio, name, handle, and gender context clues from bio
+                roster_lines.append(f"- Name: {c.name} ({c.handle}) | Bio: {c.bio}")
+            return "\n".join(roster_lines)
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"[Error getting character roster]: {e}")
+        return ""
+def get_relationship_stage_info(target_rel: str) -> dict:
+    if not target_rel:
+        return {"stage_index": 0, "length_instruction": "Write a very short, brief DM reply (under 15 words).", "max_tokens": 50}
+        
+    val = target_rel.strip().lower()
+    
+    ROMANCE_FORWARD = ['online crush', 'flirting', 'sparks', 'seeing someone new', 'going steady', 'partner', 'sweetie', 'baby', 'lover', 'soulmate']
+    ROMANCE_BACKWARD = ['crushed', 'jealous', "it's complicated", 'situationship', 'fighting', 'not working out', 'torn up', 'heartbreak', 'one that got away']
+    HATE_FORWARD = ['hate follow', 'subtweeting', 'trolling', 'flame war', 'mutual hate', 'bitter rivals', 'nemesis', 'grudge', 'frenemies', 'toxic obsession']
+    COLLAB_FORWARD = ['collab goal', 'networking', 'casual jam', 'making plans', 'studio session', 'co-writers', 'joint track', 'bandmates', 'creative partners', 'musical soulmates']
+    
+    # Find index in whichever list it exists
+    idx = 0
+    if val in ROMANCE_FORWARD:
+        idx = ROMANCE_FORWARD.index(val)
+    elif val in ROMANCE_BACKWARD:
+        idx = ROMANCE_BACKWARD.index(val)
+    elif val in HATE_FORWARD:
+        idx = HATE_FORWARD.index(val)
+    elif val in COLLAB_FORWARD:
+        idx = COLLAB_FORWARD.index(val)
+        
+    if idx <= 2:
+        return {"stage_index": idx, "length_instruction": "Write a very short, brief DM reply (under 15 words).", "max_tokens": 50}
+    elif idx <= 5:
+        return {"stage_index": idx, "length_instruction": "Write a concise DM reply (under 25 words).", "max_tokens": 80}
+    elif idx <= 8:
+        return {"stage_index": idx, "length_instruction": "Write a detailed and conversational DM reply (under 40 words).", "max_tokens": 120}
+    else:
+        return {"stage_index": idx, "length_instruction": "Write a long, deeply descriptive, and highly expressive DM reply (under 60 words).", "max_tokens": 180}
+
+async def generate_spontaneous_dm(char_name: str, char_handle: str, char_bio: str, target_rel: str) -> str:
+    """
+    Generates a spontaneous direct message from a character at a high relationship stage.
+    """
+    world_context = get_world_context_from_db()
+    wc_prefix = f"{{ World Context: {world_context} }}\n" if world_context else ""
+    
+    instruction = (
+        f"{{ Generate a short, realistic, single direct message from {char_name} ({char_handle}) to the user. "
+        f"The message must be consistent with their relationship stage: '{target_rel}' and their biography. "
+        f"For romantic relationship stages (like partner, sweetie, baby, lover, soulmate), they should call the user a pet name, say they miss them, or ask about their day. "
+        f"For collab relationship stages, they should ask about making music together, a new beat, or scheduling a jam. "
+        f"For hate relationship stages, they should send a snarky, confrontational, or trolling message. "
+        f"Write ONLY the direct message text. Do not include quotes, handles, or labels. }}"
+    )
+    
+    prompt = (
+        f"{wc_prefix}"
+        f"{instruction}\n"
+        f"Character: {char_name}\n"
+        f"Bio: {char_bio}\n"
+        f"Relationship Stage: {target_rel}\n"
+        f"Message:"
+    )
+    try:
+        raw_output = await generate_completion(prompt, max_tokens=60, temperature=0.85, log_type="Spontaneous DM")
+        return raw_output.strip().replace('"', '')
+    except Exception as e:
+        print(f"[Error generating spontaneous DM]: {e}")
+        # Fallback
+        return "hey, just thinking about you. hope you're having a good day <3"
+
+
 from datetime import datetime
 
 # Global debug log list
@@ -60,6 +153,12 @@ async def generate_completion(
     """
     Sends a completion request to the NovelAI OpenAI-compatible completions endpoint.
     """
+    # Prepend overarching narrative if it is a gameplay prompt
+    if log_type not in ("Update Narrative", "Daily Summary"):
+        overarching = get_overarching_narrative_from_db()
+        if overarching and not prompt.startswith("{ Overarching Story:"):
+            prompt = f"{{ Overarching Story: {overarching} }}\n{prompt}"
+
     if not NOVELAI_API_KEY:
         # If API key is missing, log a warning and return mock/empty response to keep app running in offline dev mode
         print("[WARNING] NOVELAI_API_KEY is not set. Using empty string fallback.")
@@ -296,7 +395,7 @@ async def generate_timeline_posts(community_name: str, seed_history: str = "") -
     Generates new posts for a specific community. Incorporates world context.
     """
     world_context = get_world_context_from_db()
-    wc_prefix = f"[ World Context: {world_context} ]\n" if world_context else ""
+    wc_prefix = f"{{ World Context: {world_context} }}\n" if world_context else ""
     
     # Fetch active characters to construct instruction prompt
     active_handles = []
@@ -314,16 +413,16 @@ async def generate_timeline_posts(community_name: str, seed_history: str = "") -
     if active_handles:
         handles_str = ", ".join(active_handles)
         instruction = (
-            f"{{Generate a batch of short, realistic, single-perspective Twitter/X timeline posts about {community_name}. "
+            f"{{ Generate a batch of short, realistic, single-perspective Twitter/X timeline posts about {community_name}. "
             f"Do not write dialogue scripts, play scripts, or conversations between multiple users. "
             f"Write posts for some of the following active users: {handles_str}."
-            f"Each post must follow the exact format of the examples below, separated by '----'.}}"
+            f"Each post must follow the exact format of the examples below, separated by '----'. }}"
         )
     else:
         instruction = (
-            f"{{Generate a batch of short, realistic, single-perspective Twitter/X timeline posts about {community_name}. "
+            f"{{ Generate a batch of short, realistic, single-perspective Twitter/X timeline posts about {community_name}. "
             f"Do not write dialogue scripts, play scripts, or conversations between multiple users. "
-            f"Each post must follow the exact format of the examples below, separated by '----'.}}"
+            f"Each post must follow the exact format of the examples below, separated by '----'. }}"
         )
     
     prompt = f"{wc_prefix}{instruction}\n"
@@ -344,12 +443,13 @@ async def generate_timeline_posts(community_name: str, seed_history: str = "") -
         random.shuffle(seed_posts)
         # Select up to 5 posts to keep prompt compact and fast
         selected_seeds = seed_posts[:5]
-        prompt += "\n----\n".join(selected_seeds) + "\n----\n"
+        prompt += "{ Post Style Examples:\n" + "\n----\n".join(selected_seeds) + " }\n"
     else:
         # Default seed format to guide the model if seed history is missing
         prompt += (
+            "{ Post Style Examples:\n"
             "daine @notdaine\n* 03:15 AM\nwriting songs on the bedroom floor at 3am is a lifestyle. new demos soon.\n----\n"
-            "Ella @moviesforguyss\n* 03:15 PM\nSobbing my eyes out listening to don't mind me by Quadeca. hits way too hard today.\n----\n"
+            "Ella @moviesforguyss\n* 03:15 PM\nSobbing my eyes out listening to don't mind me by Quadeca. hits way too hard today.\n }"
         )
     
     try:
@@ -361,39 +461,106 @@ async def generate_timeline_posts(community_name: str, seed_history: str = "") -
     except Exception:
         return DEFAULT_FALLBACK_POSTS
 
+async def summarize_older_dms(char_name: str, older_dms: list) -> str:
+    """
+    Calls NovelAI to summarize direct messages older than the last 30.
+    """
+    history_str = ""
+    for msg in older_dms:
+        history_str += f"- {msg['sender']}: \"{msg['content']}\"\n"
+        
+    instruction = (
+        f"{{ Summarize the following direct message exchange between User and {char_name} in a brief 1-2 sentence paragraph. "
+        f"Focus on the main topics discussed, agreements reached, and the general tone. Write only the summary. }}"
+    )
+    prompt = f"{instruction}\n{{ Direct Messages:\n{history_str} }}\nSummary:"
+    try:
+        raw_output = await generate_completion(prompt, max_tokens=100, temperature=0.7, log_type="Conversation Summary")
+        return raw_output.strip().replace('"', '')
+    except Exception as e:
+        print(f"[Error summarizing older DMs]: {e}")
+        return ""
+
 async def generate_dm_reply(char_name: str, char_handle: str, char_bio: str, char_avatar_alt: str, tweet_history: str, message_history: list) -> dict:
     """
     Generates a DM reply using the custom Vibe/Intensity format, incorporating world context.
     message_history is a list of dicts: [{'sender': str, 'content': str}]
     """
     world_context = get_world_context_from_db()
-    wc_prefix = f"[ World Context: {world_context} ]\n" if world_context else ""
+    wc_prefix = f"{{ World Context: {world_context} }}\n" if world_context else ""
     
     # Fetch social relationship context
     relationship_context = ""
+    older_summary = ""
+    target_rel = None
     try:
-        from backend.database import SessionLocal, Character
+        from backend.database import SessionLocal, Character, DirectMessage, ConversationSession
         from backend.crud import get_character_relationship_context
         db = SessionLocal()
         try:
             char = db.query(Character).filter_by(handle=char_handle).first()
-            if char:
+            user = db.query(Character).filter_by(is_user=True).first()
+            if char and user:
+                target_rel = char.target_relationship
                 relationship_context = get_character_relationship_context(db, char.id)
+                
+                # Fetch all messages in the thread ordered chronologically (ascending)
+                all_dms = db.query(DirectMessage).filter(
+                    ((DirectMessage.sender_id == user.id) & (DirectMessage.receiver_id == char.id)) |
+                    ((DirectMessage.sender_id == char.id) & (DirectMessage.receiver_id == user.id))
+                ).order_by(DirectMessage.timestamp.asc()).all()
+                
+                session = db.query(ConversationSession).filter_by(character_id=char.id).first()
+                
+                if len(all_dms) > 30 and session:
+                    older_dms = all_dms[:-30]
+                    # Regenerate summary if the number of older messages changed or summary is missing
+                    if session.summarized_msg_count != len(older_dms) or not session.conversation_summary:
+                        formatted_older = []
+                        for msg in older_dms:
+                            s_name = "User" if msg.sender_id == user.id else char_name
+                            formatted_older.append({
+                                "sender": s_name,
+                                "content": msg.content
+                            })
+                        
+                        summary = await summarize_older_dms(char_name, formatted_older)
+                        session.conversation_summary = summary
+                        session.summarized_msg_count = len(older_dms)
+                        db.commit()
+                        
+                    older_summary = session.conversation_summary
+                elif session and session.conversation_summary:
+                    # Clear summary if DMs were rolled back or deleted below 30
+                    session.conversation_summary = ""
+                    session.summarized_msg_count = 0
+                    db.commit()
         finally:
             db.close()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[Error loading or updating older DMs summary]: {e}")
         
     history_str = ""
     for msg in message_history:
         history_str += f"{msg['sender']}: {msg['content']}\n"
-        
-    alt_text_str = f"[Character Appearance Description: {char_avatar_alt}]\n" if char_avatar_alt else ""
+
+    # Detect if the player's most recent message contains an image — if so, allow the character to share one back
+    last_user_msg = next((m["content"] for m in reversed(message_history) if "User" in m.get("sender", "")), "")
+    player_sent_image = "[image:" in last_user_msg.lower()
+    image_instruction = (
+        " The player has shared an image. You may optionally share an image back by including [image: your description] anywhere in your Message — describe something personal or relevant to the conversation."
+        if player_sent_image else ""
+    )
+
+    alt_text_str = f"{{ Character Appearance Description: {char_avatar_alt} }}\n" if char_avatar_alt else ""
     
-    instruction = f"{{Generate the next direct message reply in the following chat. Write your reply as a structured block detailing the character's internal vibe, the intensity of that vibe, and the chat response.}}"
+    stage_info = get_relationship_stage_info(target_rel)
+    instruction = f"{{ Generate the next direct message reply in the following chat. Write your reply as a structured block detailing the character's internal vibe, the intensity of that vibe, and the chat response. {stage_info['length_instruction']}{image_instruction} }}"
     
     open_brace = "{"
     close_brace = "}"
+
+    summary_str = f"{{ Summary of older conversation:\n{older_summary} }}\n" if older_summary else ""
 
     prompt = (
         f"{wc_prefix}"
@@ -402,8 +569,9 @@ async def generate_dm_reply(char_name: str, char_handle: str, char_bio: str, cha
         f"Character: {char_name} ({char_handle})\n"
         f"Bio: {char_bio}\n"
         f"{alt_text_str}"
-        f"\n{char_name}'s Post Style Examples:\n"
-        f"{tweet_history}\n"
+        f"\n{{ {char_name}'s Post Style Examples:\n"
+        f"{tweet_history} }}\n"
+        f"{summary_str}"
         f"Message History:\n"
         f"{history_str}"
         f"\n{open_brace}Response Format:\n"
@@ -415,7 +583,7 @@ async def generate_dm_reply(char_name: str, char_handle: str, char_bio: str, cha
     )
     
     try:
-        raw_output = await generate_completion(prompt, max_tokens=150, temperature=0.75, stop=[f"\n{char_name}", "\nMessage History:"], log_type="DM Reply")
+        raw_output = await generate_completion(prompt, max_tokens=stage_info['max_tokens'], temperature=0.75, stop=[f"\n{char_name}", "\nMessage History:"], log_type="DM Reply")
         # Since we prefilled "Vibe:", prepend it back to raw_output to parse correctly
         full_text = "Vibe:" + raw_output
         return parse_dm_response(full_text)
@@ -441,7 +609,7 @@ async def generate_thread_reply(
     thread_history is a list of dicts: [{'handle': str, 'content': str}]
     """
     world_context = get_world_context_from_db()
-    wc_prefix = f"[ World Context: {world_context} ]\n" if world_context else ""
+    wc_prefix = f"{{ World Context: {world_context} }}\n" if world_context else ""
     
     # Fetch social relationship context
     relationship_context = ""
@@ -463,10 +631,10 @@ async def generate_thread_reply(
         history_str += f"{post['handle']}: {post['content']}\n"
         
     if replying_to_user:
-        instruction = f"{{Below is an online social media thread. Write a reply from {char_name} ({char_handle}) directly replying to the user ({user_handle}). Start your reply by mentioning {user_handle}. Keep it short, conversational, and in character.}}"
+        instruction = f"{{ Below is an online social media thread. Write a reply from {char_name} ({char_handle}) directly replying to the user ({user_handle}). Start your reply by mentioning {user_handle}. Keep it short, conversational, and in character. }}"
         prefill = f"{char_handle}: {user_handle}"
     else:
-        instruction = f"{{Below is an online social media thread. Write a reply from {char_name} ({char_handle}) reacting to the conversation. Keep it short, conversational, and in character.}}"
+        instruction = f"{{ Below is an online social media thread. Write a reply from {char_name} ({char_handle}) reacting to the conversation. Keep it short, conversational, and in character. }}"
         prefill = f"{char_handle}:"
     
     prompt = (
@@ -475,8 +643,8 @@ async def generate_thread_reply(
         f"{instruction}\n"
         f"Character: {char_name} ({char_handle})\n"
         f"Bio: {char_bio}\n"
-        f"\n{char_name}'s Post Style Examples:\n"
-        f"{tweet_history}\n"
+        f"\n{{ {char_name}'s Post Style Examples:\n"
+        f"{tweet_history} }}\n"
         f"Thread:\n"
         f"{history_str}"
         f"{prefill}"
@@ -554,14 +722,14 @@ async def generate_narrative_outcome(context_desc: str, user_reply: str) -> str:
     Generates a single dramatic sentence outcome of the user's latest interaction.
     """
     world_context = get_world_context_from_db()
-    wc_prefix = f"[ World Context: {world_context} ]\n" if world_context else ""
+    wc_prefix = f"{{ World Context: {world_context} }}\n" if world_context else ""
     
-    instruction = "{Generate a single, stylish, and dramatic sentence describing the narrative outcome of the user's latest message in this conversation. Write ONLY the sentence. Do not add quotes.}"
+    instruction = "{ Generate a single, stylish, and dramatic sentence describing the narrative outcome of the user's latest message in this conversation. Write ONLY the sentence. Do not add quotes. }"
     
     prompt = (
         f"{wc_prefix}"
         f"{instruction}\n"
-        f"Context: {context_desc}\n"
+        f"{{ Context: {context_desc} }}\n"
         f"User Reply: {user_reply}\n"
         f"Outcome:"
     )
@@ -576,7 +744,10 @@ async def generate_social_event(characters_info: list) -> str:
     Generates a social dilemma event scenario involving 1-3 characters.
     """
     world_context = get_world_context_from_db()
-    wc_prefix = f"[ World Context: {world_context} ]\n" if world_context else ""
+    wc_prefix = f"{{ World Context: {world_context} }}\n" if world_context else ""
+    
+    roster = get_character_roster_from_db()
+    roster_str = f"{{ Scene Character Roster:\n{roster} }}\n" if roster else ""
     
     char_details = ""
     char_names = []
@@ -585,56 +756,139 @@ async def generate_social_event(characters_info: list) -> str:
         char_names.append(char['name'])
         
     names_str = " and ".join(char_names)
-    instruction = f"{{Generate a short, dramatic scenario involving You (the user) and {names_str} that requires the user to make a difficult social choice. End the scenario with a direct question asking the user what they will do.}}"
+    
+    user_name = "You"
+    try:
+        from backend.database import SessionLocal, Character
+        db = SessionLocal()
+        try:
+            user = db.query(Character).filter_by(is_user=True).first()
+            if user:
+                user_name = user.name
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+    instruction = (
+        f"{{ Write an immersive, dramatic, and concise scene set in the music scene involving You ({user_name}) and {names_str}. "
+        f"Do NOT write outline bullet points, planning notes, character perspectives, meta outlines, or list headings. "
+        f"Instead, write a single fluid, stylish story paragraph (under 120 words) depicting the event, setting, and actions in real-time. "
+        f"Conclude the paragraph with a direct question asking You ({user_name}) what choice you will make to resolve this difficult social choice. }}"
+    )
     
     prompt = (
         f"{wc_prefix}"
+        f"{roster_str}"
         f"{instruction}\n"
+        f"{{ Example Format:\n"
+        f"Event: You ({user_name}) find yourself at the Echo Park record store where Darcy is arguing with the clerk about an indie vinyl. "
+        f"Max is sitting on a speaker nearby, looking completely bored and zoning out. "
+        f"When Darcy spots you, she gestures for you to come over and take her side in the argument, but Max shoots you a text saying 'don't get involved, let's just go grab tacos.' "
+        f"What will you, {user_name}, do? }}\n\n"
         f"{char_details}\n"
         f"Event:"
     )
     try:
-        raw_output = await generate_completion(prompt, max_tokens=180, temperature=0.85, log_type="Social Dilemma Scenario")
+        raw_output = await generate_completion(prompt, max_tokens=250, temperature=0.85, log_type="Social Dilemma Scenario")
         return raw_output.strip()
     except Exception:
-        return f"A rumor starts circulating that Soren and Pop Craze are collaborating secretly. You notice them whispering in the green room. What will you do?"
+        return f"A rumor starts circulating that Soren and Pop Craze are collaborating secretly. You notice them whispering in the green room. What will you, {user_name}, do?"
 
-async def generate_event_resolution(scenario_text: str, user_action: str) -> str:
+async def generate_event_resolution(scenario_text: str, user_action: str) -> dict:
     """
     Based on user's action, describes the outcome in a stylish paragraph.
-    Concludes with relationship impact.
+    Explicitly classifies the relationship impact as POSITIVE, NEGATIVE, or NEUTRAL.
+    Returns a dict: {"text": str, "impact": str}
     """
     world_context = get_world_context_from_db()
-    wc_prefix = f"[ World Context: {world_context} ]\n" if world_context else ""
+    wc_prefix = f"{{ World Context: {world_context} }}\n" if world_context else ""
     
-    instruction = "{Based on the user's chosen action, describe the outcome of this scenario in a stylish, narrative paragraph. Conclude by explicitly stating if this positively or negatively affected their relationship with the characters.}"
+    roster = get_character_roster_from_db()
+    roster_str = f"{{ Scene Character Roster:\n{roster} }}\n" if roster else ""
+    
+    user_name = "You"
+    try:
+        from backend.database import SessionLocal, Character
+        db = SessionLocal()
+        try:
+            user = db.query(Character).filter_by(is_user=True).first()
+            if user:
+                user_name = user.name
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+    instruction = (
+        f"{{ Based on the user's chosen action, describe the outcome of this scenario in a stylish, narrative paragraph. "
+        f"At the very end of your response, on a new line, explicitly declare the relationship impact in the format: 'Impact: [POSITIVE]' "
+        f"if the action would improve relationship/bond, 'Impact: [NEGATIVE]' if it hurts relationship/reputation, "
+        f"or 'Impact: [NEUTRAL]' if it is mixed or has no net impact. }}"
+    )
     
     prompt = (
         f"{wc_prefix}"
+        f"{roster_str}"
         f"{instruction}\n"
-        f"Scenario: {scenario_text}\n"
+        f"{{ Scenario: {scenario_text} }}\n"
         f"User Action: {user_action}\n"
+        f"{{ Example Format:\n"
+        f"Resolution: Darcy smiles and feels supported by your choice.\n"
+        f"Impact: [POSITIVE] }}\n\n"
         f"Resolution:"
     )
+    
+    fallback = {
+        "text": "Your action resolved the crisis, moving the scene forward.",
+        "impact": "NEUTRAL"
+    }
+    
     try:
-        raw_output = await generate_completion(prompt, max_tokens=150, temperature=0.8, log_type="Social Dilemma Resolution")
-        return raw_output.strip()
-    except Exception:
-        return "Your action resolved the crisis. It positively affected your relationship with Soren, but negatively affected your reputation with Pop Craze."
+        raw_output = await generate_completion(prompt, max_tokens=200, temperature=0.8, log_type="Social Dilemma Resolution")
+        text = raw_output.strip()
+        
+        # Parse Impact
+        impact = "NEUTRAL"
+        if "Impact: [POSITIVE]" in text:
+            impact = "POSITIVE"
+        elif "Impact: [NEGATIVE]" in text:
+            impact = "NEGATIVE"
+        elif "Impact: [NEUTRAL]" in text:
+            impact = "NEUTRAL"
+            
+        # Clean text by removing Impact line
+        cleaned_lines = []
+        for line in text.split("\n"):
+            if "impact:" not in line.lower() and "resolution:" not in line.lower():
+                cleaned_lines.append(line)
+        cleaned_text = "\n".join(cleaned_lines).strip()
+        
+        # Fallback to original text if cleanup empties it
+        if not cleaned_text:
+            cleaned_text = text
+            
+        return {
+            "text": cleaned_text,
+            "impact": impact
+        }
+    except Exception as e:
+        print(f"[Error generating event resolution]: {e}")
+        return fallback
 
 async def generate_new_ai_character(community_name: str) -> dict:
     """
     Generates a brand new AI character active in the community, including name, handle, bio, and first post.
     """
     world_context = get_world_context_from_db()
-    wc_prefix = f"[ World Context: {world_context} ]\n" if world_context else ""
+    wc_prefix = f"{{ World Context: {world_context} }}\n" if world_context else ""
     
     prompt = (
         f"{wc_prefix}"
-        f"{{Generate a brand new, highly realistic and interesting character active in the {community_name} community, "
+        f"{{ Generate a brand new, highly realistic and interesting character active in the {community_name} community, "
         f"along with their first social media post. Do not use any existing predefined characters. "
         f"Return the profile in the exact format shown below. Keep the handle creative and unique, starting with @. "
-        f"Do not write dialogue scripts or conversations.}}\n"
+        f"Do not write dialogue scripts or conversations. }}\n"
         f"Format:\n"
         f"Name: [Full Name]\n"
         f"Handle: @[username]\n"
@@ -683,14 +937,14 @@ async def generate_single_character_post(char_name: str, char_handle: str, char_
     Generates a single post for an existing character, incorporating their full profile and tweet history.
     """
     world_context = get_world_context_from_db()
-    wc_prefix = f"[ World Context: {world_context} ]\n" if world_context else ""
+    wc_prefix = f"{{ World Context: {world_context} }}\n" if world_context else ""
     
     instruction = (
-        f"{{Generate a single, short, realistic, single-perspective Twitter/X timeline post by {char_name} ({char_handle}) "
+        f"{{ Generate a single, short, realistic, single-perspective Twitter/X timeline post by {char_name} ({char_handle}) "
         f"who is part of the {community_name} community. "
         f"The post must match their personality, bio, and style of previous posts. "
         f"Write ONLY the post content. Do not write dialogue scripts, play scripts, or conversations between multiple users. "
-        f"Do not include their name, handle, timestamp, or any quotes. Write only the post itself.}}"
+        f"Do not include their name, handle, timestamp, or any quotes. Write only the post itself. }}"
     )
     
     prompt = (
@@ -717,9 +971,10 @@ async def generate_single_character_post(char_name: str, char_handle: str, char_
             if line:
                 clean_lines.append(line)
         if clean_lines:
-            prompt += "\nPrevious Posts:\n"
+            prompt += "\n{{ Previous Posts:\n"
             for cl in clean_lines:
                 prompt += f"- {cl}\n"
+            prompt += " }}\n"
     prompt += "\nNew Post:\n-"
     
     raw_output = await generate_completion(prompt, max_tokens=60, temperature=0.85, log_type="Timeline Posts")
@@ -727,4 +982,42 @@ async def generate_single_character_post(char_name: str, char_handle: str, char_
     # Strip any leading hyphens, quotes, or whitespace
     result = raw_output.strip().strip('"-* ')
     return result
+
+async def generate_daily_summary(posts_text: str, actions_text: str) -> str:
+    overarching = get_overarching_narrative_from_db()
+    narrative_prefix = f"{{ Overarching Story: {overarching} }}\n" if overarching else ""
+    
+    instruction = (
+        "{ Write a concise, realistic, and highly stylized 2-3 sentence diary summary of today's social events and music scene drama. "
+        "Base it on the following timeline posts and user actions. Do not use generic filler text or bullet points. Write only the summary. }"
+    )
+    prompt = (
+        f"{narrative_prefix}"
+        f"{instruction}\n"
+        f"{{ Timeline Posts:\n{posts_text} }}\n"
+        f"{{ User Actions:\n{actions_text} }}\n"
+        f"Summary:"
+    )
+    try:
+        raw_output = await generate_completion(prompt, max_tokens=150, temperature=0.8, log_type="Daily Summary")
+        return raw_output.strip().replace('"', '')
+    except Exception:
+        return "The day passed with quiet beats and keyboard yaps. You worked on your music track and chatted with Soren."
+
+async def generate_updated_narrative(old_narrative: str, daily_summary: str) -> str:
+    instruction = (
+        "{ Update the following overarching story of the music scene simulator to seamlessly integrate today's events. "
+        "Merge them into a single, cohesive, dramatic narrative arc. Keep the final narrative under 150 words. Do not write list entries. }"
+    )
+    prompt = (
+        f"{instruction}\n"
+        f"Current Overarching Story:\n{old_narrative}\n"
+        f"Today's Events:\n{daily_summary}\n"
+        f"Updated Story:"
+    )
+    try:
+        raw_output = await generate_completion(prompt, max_tokens=250, temperature=0.75, log_type="Update Narrative")
+        return raw_output.strip().replace('"', '')
+    except Exception:
+        return f"{old_narrative} {daily_summary}"
 

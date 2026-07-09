@@ -25,8 +25,9 @@
                 <button class="nav-item active" id="nav-timeline" data-target="view-timeline">
                     <span class="nav-icon">🌐</span> Timeline
                 </button>
-                <button class="nav-item" id="nav-dms" data-target="view-dms">
+                <button class="nav-item" id="nav-dms" data-target="view-dms" style="position: relative;">
                     <span class="nav-icon">💬</span> Direct Messages
+                    <span class="notification-badge" id="dm-notification-badge" style="display: none; position: absolute; top: 12px; right: 16px; background: var(--accent-pink); color: #000; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 10px;">New</span>
                 </button>
                 <button class="nav-item" id="nav-studio" data-target="view-studio">
                     <span class="nav-icon">🎭</span> Character Studio
@@ -57,6 +58,24 @@
         <!-- MAIN CONTENT COLUMN -->
         <main class="app-content">
             
+            <!-- GLOBAL STATUS BAR -->
+            <div class="global-status-bar" id="game-global-status-bar" style="display: flex; justify-content: space-between; align-items: center; background: rgba(18, 18, 26, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 10px 20px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); gap: 16px;">
+                <div class="status-day" style="display: flex; align-items: center; gap: 8px; background: rgba(0, 240, 255, 0.08); border: 1px solid rgba(0, 240, 255, 0.2); padding: 6px 12px; border-radius: 8px; color: var(--accent-cyan); font-family: var(--font-heading); font-weight: 700; font-size: 14.5px; flex-shrink: 0;">
+                    <span class="status-icon">📅</span>
+                    <span class="day-text" id="status-day-val">Day 1</span>
+                </div>
+                <div class="status-milestone" style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px; align-items: center; max-width: 50%;">
+                    <div class="milestone-text" id="global-milestone-text" style="font-size: 12.5px; font-weight: 600; color: var(--text-secondary); text-align: center; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; width: 100%; font-family: var(--font-heading);">Focus: None (Select focus in profile)</div>
+                    <div class="progress-bar-bg milestone-progress-bg" style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05);">
+                        <div class="progress-bar-fill milestone-progress-fill" id="global-milestone-fill" style="height: 100%; background: linear-gradient(90deg, var(--accent-cyan), var(--accent-pink)); border-radius: 4px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); width: 0%;"></div>
+                    </div>
+                </div>
+                <div class="status-xp" style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                    <span class="level-badge" id="global-level-badge" style="background: rgba(255, 0, 128, 0.1); border: 1px solid rgba(255, 0, 128, 0.25); color: var(--accent-pink); font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 8px; font-family: var(--font-heading); text-transform: uppercase; letter-spacing: 0.05em;">LVL 1</span>
+                    <span class="xp-text" id="global-xp-text" style="font-family: monospace; font-size: 13px; font-weight: 600; color: var(--text-muted);">0 / 100 XP</span>
+                </div>
+            </div>
+            
             <!-- TIMELINE VIEW -->
             <section id="view-timeline" class="content-view active">
                 <header class="view-header">
@@ -74,14 +93,32 @@
                         <div class="card publisher-card">
                             <form id="post-form">
                                 <textarea id="post-content" placeholder="Share a status update, photo description, or music vibe..." required></textarea>
+                                <!-- Image attach popover -->
+                                <div id="post-image-popover" style="display:none; flex-direction:column; gap:8px; background:rgba(0,0,0,0.3); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; margin-top:4px;">
+                                    <label style="font-size:12px; color:var(--text-secondary); font-weight:600;">Describe the image so characters can interpret it:</label>
+                                    <div style="display:flex; gap:8px;">
+                                        <input type="text" id="post-image-desc" placeholder="e.g. selfie at a gig, blurry lights behind me" style="flex-grow:1; background:rgba(0,0,0,0.3); border:1px solid var(--border-color); border-radius:6px; color:var(--text-primary); font-size:13px; padding:6px 10px; outline:none;">
+                                        <button type="button" id="btn-post-image-confirm" class="btn btn-secondary btn-sm" style="height:32px; font-size:12px; padding:0 14px;">Attach</button>
+                                        <button type="button" id="btn-post-image-cancel" class="btn btn-secondary btn-sm" style="height:32px; font-size:12px; padding:0 10px; opacity:0.6;">✕</button>
+                                    </div>
+                                </div>
                                 <div class="publisher-actions">
                                     <select id="post-community-select">
                                         <option value="">Public Feed</option>
                                         <!-- Dynamically loaded -->
                                     </select>
+                                    <button type="button" id="btn-post-attach-image" class="btn btn-secondary" title="Attach image description" style="padding:0 12px; font-size:16px;">📷</button>
                                     <button type="submit" class="btn btn-primary">Post Update</button>
                                 </div>
                             </form>
+                        </div>
+                        
+                        <!-- Active Side Quests -->
+                        <div class="card side-quests-card" style="border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(18, 18, 26, 0.4); padding: 16px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                            <h3 style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-top: 0; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; font-family: var(--font-heading); font-weight: 700; display: flex; align-items: center; gap: 8px;">🎯 Active Side Quests</h3>
+                            <div class="side-quests-list" id="timeline-side-quests-list" style="display: flex; flex-direction: column; gap: 8px;">
+                                <!-- Dynamically loaded -->
+                            </div>
                         </div>
                         
                         <!-- Timeline Feed Container -->
@@ -187,9 +224,19 @@
                             </div>
 
                             <!-- Chat Composer Input -->
-                            <div class="chat-composer">
-                                <form id="dm-send-form">
-                                    <input type="text" id="dm-input-content" placeholder="Send a message..." required autocomplete="off">
+                            <div class="chat-composer" style="flex-direction:column; gap:6px;">
+                                <!-- DM image attach popover -->
+                                <div id="dm-image-popover" style="display:none; flex-direction:column; gap:8px; background:rgba(0,0,0,0.3); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px;">
+                                    <label style="font-size:12px; color:var(--text-secondary); font-weight:600;">Describe the image:</label>
+                                    <div style="display:flex; gap:8px;">
+                                        <input type="text" id="dm-image-desc" placeholder="e.g. photo from last night's show" style="flex-grow:1; background:rgba(0,0,0,0.3); border:1px solid var(--border-color); border-radius:6px; color:var(--text-primary); font-size:13px; padding:6px 10px; outline:none;">
+                                        <button type="button" id="btn-dm-image-confirm" class="btn btn-secondary btn-sm" style="height:32px; font-size:12px; padding:0 14px;">Send Image</button>
+                                        <button type="button" id="btn-dm-image-cancel" class="btn btn-secondary btn-sm" style="height:32px; font-size:12px; padding:0 10px; opacity:0.6;">✕</button>
+                                    </div>
+                                </div>
+                                <form id="dm-send-form" style="display:flex; gap:8px; width:100%;">
+                                    <button type="button" id="btn-dm-attach-image" class="btn btn-secondary" title="Send image description" style="padding:0 12px; font-size:16px; flex-shrink:0;">📷</button>
+                                    <input type="text" id="dm-input-content" placeholder="Send a message..." autocomplete="off" style="flex-grow:1;">
                                     <button type="submit" class="btn btn-primary">Send</button>
                                 </form>
                             </div>
@@ -342,6 +389,48 @@
                         <button type="submit" class="btn btn-primary">Save Profile</button>
                     </form>
                 </div>
+
+                <!-- Skills & Attributes Allocation -->
+                <div class="card skills-layout-card" style="margin-top: 20px; padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                        <h2 style="margin: 0; font-size: 18px; font-family: var(--font-heading); font-weight: 600;">🎭 Influence Skills</h2>
+                        <div class="skills-unspent" id="profile-unspent-points-badge" style="background: var(--accent-pink); color: #000; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700;">
+                            0 Skill Points Available
+                        </div>
+                    </div>
+                    <div class="skills-grid" style="display: flex; flex-direction: column; gap: 16px;">
+                        <div class="skill-item" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="flex-grow: 1;">
+                                <div style="font-weight: 600; font-size: 15px; color: var(--text-primary);">Empathy</div>
+                                <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 2px;">Amplifies relationship score changes (both increases and decreases) by +1 per point.</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span class="skill-value-badge" id="skill-empathy-val" style="font-family: monospace; font-size: 15px; font-weight: 600; color: var(--accent-cyan); background: rgba(0,240,255,0.1); padding: 4px 10px; border-radius: 6px;">0</span>
+                                <button class="btn btn-secondary btn-sm btn-allocate-skill" data-skill="empathy" style="height: 32px; width: 32px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700;">+</button>
+                            </div>
+                        </div>
+                        <div class="skill-item" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="flex-grow: 1;">
+                                <div style="font-weight: 600; font-size: 15px; color: var(--text-primary);">Fame</div>
+                                <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 2px;">Boosts the chance of gossip bot headlines mentioning you.</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span class="skill-value-badge" id="skill-fame-val" style="font-family: monospace; font-size: 15px; font-weight: 600; color: var(--accent-cyan); background: rgba(0,240,255,0.1); padding: 4px 10px; border-radius: 6px;">0</span>
+                                <button class="btn btn-secondary btn-sm btn-allocate-skill" data-skill="fame" style="height: 32px; width: 32px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700;">+</button>
+                            </div>
+                        </div>
+                        <div class="skill-item" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="flex-grow: 1;">
+                                <div style="font-weight: 600; font-size: 15px; color: var(--text-primary);">Relevance</div>
+                                <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 2px;">Increases XP rewards from resolving social dilemma events by +15% per point.</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span class="skill-value-badge" id="skill-relevance-val" style="font-family: monospace; font-size: 15px; font-weight: 600; color: var(--accent-cyan); background: rgba(0,240,255,0.1); padding: 4px 10px; border-radius: 6px;">0</span>
+                                <button class="btn btn-secondary btn-sm btn-allocate-skill" data-skill="relevance" style="height: 32px; width: 32px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700;">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- CHARACTER PROFILE VIEW -->
@@ -365,6 +454,21 @@
                     </div>
 
                     <div id="char-profile-bio" style="font-size: 14.5px; line-height: 1.5; color: var(--text-primary); border-top: 1px solid var(--border-color); padding-top: 12px;"></div>
+
+                    <!-- Tweet History Editor -->
+                    <div id="char-profile-tweet-history-section" style="border-top: 1px solid var(--border-color); padding-top: 12px; display: none; flex-direction: column; gap: 8px;">
+                        <button id="btn-toggle-tweet-editor" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-family: var(--font-heading); font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 0; transition: color 0.2s;">
+                            <span id="tweet-editor-toggle-icon" style="font-size: 10px; transition: transform 0.2s;">▶</span>
+                            Edit Post Archive
+                        </button>
+                        <div id="tweet-editor-body" style="display: none; flex-direction: column; gap: 8px;">
+                            <p style="font-size: 12px; color: var(--text-muted); margin: 0; line-height: 1.5;">These posts form the character's backstory and voice. Each line is treated as a separate past post that influences how they speak and respond. Separate posts with a newline.</p>
+                            <textarea id="char-profile-tweet-history-input" rows="7" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-family: var(--font-body); font-size: 13px; line-height: 1.6; padding: 10px 12px; resize: vertical; outline: none; transition: border-color 0.2s;" placeholder="Enter past posts, one per line..."></textarea>
+                            <div style="display: flex; justify-content: flex-end;">
+                                <button class="btn btn-secondary btn-sm" id="btn-save-tweet-history" style="font-size: 12px; padding: 6px 16px; height: 32px;">Save Archive</button>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Target Relationship Editor -->
                     <div id="char-profile-target-rel-section" style="border-top: 1px solid var(--border-color); padding-top: 12px; display: none; flex-direction: column; gap: 6px;">
@@ -433,6 +537,17 @@
 
         <!-- RIGHT PANEL (SIMULATION CONTROLS & STATS) -->
         <section class="app-right-panel">
+            <!-- Day Progression Control -->
+            <div class="panel-section day-progression-section" style="border: 1px solid rgba(255, 255, 255, 0.08); padding: 16px; border-radius: 12px; background: rgba(18, 18, 26, 0.4); margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                <h3 style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-top: 0; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; font-family: var(--font-heading); font-weight: 700; display: flex; align-items: center; gap: 8px;">🌅 Narrative Progression</h3>
+                <button class="btn btn-primary btn-block" id="btn-end-day" disabled style="width: 100%; font-weight: 700; letter-spacing: 0.02em;">
+                    <span class="btn-icon">💤</span> Go to Sleep
+                </button>
+                <div class="day-progression-requirements" id="day-progression-reqs" style="font-size: 11.5px; color: var(--text-muted); text-align: center; margin-top: 10px; line-height: 1.5; font-family: var(--font-body);">
+                    Requires batching posts (Required) and 20 XP today (0/20)
+                </div>
+            </div>
+
             <!-- Simulation Trigger Actions -->
             <div class="panel-section">
                 <h3>Simulation Commands</h3>
@@ -496,6 +611,28 @@
                 <div class="event-stats-unlocked" id="event-resolution-stats"></div>
                 <button type="button" class="btn btn-primary btn-block" id="btn-close-event-modal" style="margin-top: 16px;">Resume Adventure</button>
             </div>
+        </div>
+    </div>
+
+    <!-- DAY SUMMARY OVERLAY MODAL -->
+    <div class="modal-backdrop" id="day-summary-modal-backdrop" style="display: none;">
+        <div class="card event-modal-card day-summary-modal-card" style="max-width: 500px;">
+            <div class="event-modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                <h2 style="margin: 0; color: var(--accent-cyan); font-family: 'Outfit', sans-serif;">🌅 Day Summary</h2>
+            </div>
+            <div class="day-summary-section" style="margin-bottom: 20px;">
+                <h3 style="font-size: 14px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Narrative Summary</h3>
+                <div id="day-summary-narrative" style="line-height: 1.6; font-size: 14.5px; color: var(--text-secondary); background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    Summarizing the day's event loop...
+                </div>
+            </div>
+            <div class="day-summary-section" style="margin-bottom: 20px;">
+                <h3 style="font-size: 14px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Rewards & Relationship Shifts</h3>
+                <div id="day-summary-stats-list" style="display: flex; flex-direction: column; gap: 8px;">
+                    <!-- Dynamically loaded pills -->
+                </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-block" id="btn-close-day-summary">Start Next Day</button>
         </div>
     </div>
 

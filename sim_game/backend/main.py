@@ -10,7 +10,7 @@ from pydantic import BaseModel
 import random
 import datetime
 
-from backend.database import get_db, init_db, Character, Post, DirectMessage, ConversationSession, Community, Event
+from backend.database import get_db, init_db, Character, Post, DirectMessage, ConversationSession, Community, Event, GameState, DailySummary, SideQuest, ActivityLog
 from backend.config import UPLOAD_DIR
 import backend.crud as crud
 import backend.novelai as novelai
@@ -171,6 +171,7 @@ async def run_outcome_generation_task(db_session_factory, trigger_type: str, con
     try:
         outcome = await novelai.generate_narrative_outcome(context_desc, user_reply)
         xp = random.randint(5, 15)
+        crud.gain_xp(db, xp)
         crud.log_activity(
             db=db,
             trigger_type=trigger_type,
@@ -219,6 +220,7 @@ def read_timeline(community_id: Optional[int] = None, db: Session = Depends(get_
             "timestamp": post.timestamp,
             "community_id": post.community_id,
             "replies_count": replies_count,
+            "game_day": post.game_day,
             "author": {
                 "id": post.author.id,
                 "name": post.author.name,
@@ -229,7 +231,7 @@ def read_timeline(community_id: Optional[int] = None, db: Session = Depends(get_
             }
         })
     return result
-
+ 
 @app.get("/api/posts/{post_id}")
 def read_post_thread(post_id: int, db: Session = Depends(get_db)):
     """
@@ -238,7 +240,7 @@ def read_post_thread(post_id: int, db: Session = Depends(get_db)):
     thread = crud.get_post_thread(db, post_id)
     if not thread:
         raise HTTPException(status_code=404, detail="Post not found")
-        
+         
     result = []
     for post in thread:
         result.append({
@@ -247,6 +249,7 @@ def read_post_thread(post_id: int, db: Session = Depends(get_db)):
             "timestamp": post.timestamp,
             "community_id": post.community_id,
             "parent_id": post.parent_id,
+            "game_day": post.game_day,
             "author": {
                 "id": post.author.id,
                 "name": post.author.name,
@@ -274,8 +277,24 @@ def create_timeline_post(payload: PostCreate, background_tasks: BackgroundTasks,
         community_id=payload.community_id
     )
     
-    # Trigger a thread cascade for the user's new root post
+    # Check side quests
+    crud.check_side_quests(db, "Post", community_id=payload.community_id)
+    
+    # Schedule outcome generation task for creating a post to get XP and log activity
     from backend.database import SessionLocal
+    background_tasks.add_task(
+        run_outcome_generation_task,
+        SessionLocal,
+        "Post",
+        "Timeline post update",
+        payload.content,
+        None,
+        post.id,
+        None,
+        0
+    )
+    
+    # Trigger a thread cascade for the user's new root post
     background_tasks.add_task(
         run_thread_cascade,
         SessionLocal,
@@ -307,6 +326,10 @@ def reply_to_post(post_id: int, payload: PostCreate, background_tasks: Backgroun
         community_id=parent_post.community_id,
         parent_id=post_id
     )
+    
+    # Increment daily action count and check side quests
+    crud.increment_daily_action_count(db)
+    crud.check_side_quests(db, "Thread_Reply", community_id=parent_post.community_id)
     
     # Schedule the cascade background task to simulate active replies from other characters
     from backend.database import SessionLocal
@@ -571,20 +594,25 @@ def get_character_posts(character_id: int, db: Session = Depends(get_db)):
             "id": p.id,
             "content": p.content,
             "timestamp": p.timestamp,
-            "is_history": False
+            "is_history": False,
+            "game_day": p.game_day
         })
         
     if char.tweet_history:
         from backend.novelai import parse_generated_posts, format_tweet_history
         formatted_history = format_tweet_history(char.name, char.handle, char.tweet_history)
         history_posts = parse_generated_posts(formatted_history)
+        total = len(history_posts)
         for idx, hp in enumerate(history_posts):
-            fake_time = datetime.datetime.now() - datetime.timedelta(days=idx+1)
+            # Last entry in tweet_history = most recent (days=1), first = oldest
+            age_days = (total - idx)
+            fake_time = datetime.datetime.now() - datetime.timedelta(days=age_days)
             posts_list.append({
                 "id": f"history_{idx}",
                 "content": hp["content"],
                 "timestamp": fake_time,
-                "is_history": True
+                "is_history": True,
+                "game_day": 0
             })
             
     posts_list.sort(key=lambda x: x["timestamp"], reverse=True)
@@ -651,6 +679,12 @@ def read_dms(character_id: int, db: Session = Depends(get_db)):
     if not char:
         raise HTTPException(status_code=404, detail="Character not found")
         
+    # Clear unread status
+    if char.has_unread:
+        char.has_unread = False
+        db.commit()
+        db.refresh(char)
+        
     messages = crud.get_dms(db, user.id, char.id)
     session = crud.get_conversation_session(db, char.id)
     
@@ -665,7 +699,8 @@ def read_dms(character_id: int, db: Session = Depends(get_db)):
             "content": msg.content,
             "timestamp": msg.timestamp,
             "vibe": msg.vibe,
-            "intensity": msg.intensity
+            "intensity": msg.intensity,
+            "game_day": msg.game_day
         })
         
     return {
@@ -702,6 +737,9 @@ async def send_dm_message(character_id: int, payload: DMCreate, background_tasks
     # Log user message
     user_dm = crud.create_dm(db, sender_id=user.id, receiver_id=character_id, content=payload.content)
 
+    # Fetch game state for skills and counters
+    game_state = crud.get_game_state(db)
+    empathy = game_state.empathy_pts
     
     # Process turn details
     session = crud.get_conversation_session(db, character_id)
@@ -713,15 +751,21 @@ async def send_dm_message(character_id: int, payload: DMCreate, background_tasks
     if session.replies_left <= 0:
         session.replies_left = 5
         # Trigger score bonus
-        crud.increment_relationship_score(db, character_id, 10)
+        rel_change = 10 + empathy
+        crud.increment_relationship_score(db, character_id, rel_change)
         milestone_triggered = True
-        milestone_msg = f"[Relationship Milestone reached! Your bond with {char.name} has strengthened (+10 Rel).]"
+        milestone_msg = f"[Relationship Milestone reached! Your bond with {char.name} has strengthened (+{rel_change} Rel).]"
     else:
         # Standard increment
-        crud.increment_relationship_score(db, character_id, 2)
+        rel_change = 2 + empathy
+        crud.increment_relationship_score(db, character_id, rel_change)
         
-    # Build context history for NovelAI (last 8 DMs)
-    recent_dms = crud.get_dms(db, user.id, char.id, limit=8)
+    # Increment daily action count and check side quests
+    crud.increment_daily_action_count(db)
+    crud.check_side_quests(db, "DM", character_id=character_id)
+        
+    # Build context history for NovelAI (last 30 DMs)
+    recent_dms = crud.get_dms(db, user.id, char.id, limit=30)
     msg_history = []
     for msg in recent_dms:
         sender_char = db.query(Character).filter_by(id=msg.sender_id).first()
@@ -768,7 +812,7 @@ async def send_dm_message(character_id: int, payload: DMCreate, background_tasks
     
     # Schedule DM narrative outcome task
     from backend.database import SessionLocal
-    rel_change = 10 if milestone_triggered else 2
+    rel_change_final = 10 + empathy if milestone_triggered else 2 + empathy
     background_tasks.add_task(
         run_outcome_generation_task,
         SessionLocal,
@@ -778,7 +822,7 @@ async def send_dm_message(character_id: int, payload: DMCreate, background_tasks
         char.id,
         None,
         user_dm.id,
-        rel_change
+        rel_change_final
     )
     
     response_data = {
@@ -790,7 +834,8 @@ async def send_dm_message(character_id: int, payload: DMCreate, background_tasks
             "content": logged_reply.content,
             "timestamp": logged_reply.timestamp,
             "vibe": logged_reply.vibe,
-            "intensity": logged_reply.intensity
+            "intensity": logged_reply.intensity,
+            "game_day": logged_reply.game_day
         },
         "session": {
             "vibe": logged_reply.vibe,
@@ -804,12 +849,78 @@ async def send_dm_message(character_id: int, payload: DMCreate, background_tasks
     return response_data
 
 
+@app.post("/api/dms/rollback/{character_id}/{dm_id}")
+def rollback_direct_messages(character_id: int, dm_id: int, db: Session = Depends(get_db)):
+    """
+    Rolls back the direct message history with a character to a specific player message,
+    deleting all subsequent messages in that thread.
+    """
+    user = crud.get_user_character(db)
+    if not user:
+        raise HTTPException(status_code=404, detail="User profile not found")
+        
+    success = crud.rollback_dms(db, user.id, character_id, dm_id)
+    if not success:
+        raise HTTPException(status_code=400, detail="Invalid target message or sender mismatch")
+        
+    return {"status": "success"}
+
+
+async def trigger_spontaneous_dms(db: Session, current_day: int):
+    """
+    Checks all followed characters. For any at higher relationship stages (index >= 4),
+    there is a 40% chance they will proactively send a DM.
+    """
+    import random
+    from backend.database import Character, DirectMessage
+    from backend.novelai import generate_spontaneous_dm, get_relationship_stage_info
+    
+    user = db.query(Character).filter_by(is_user=True).first()
+    if not user:
+        return
+        
+    mutuals = db.query(Character).filter(Character.following == True, Character.is_user == False).all()
+    has_changes = False
+    for char in mutuals:
+        if not char.target_relationship:
+            continue
+            
+        stage_info = get_relationship_stage_info(char.target_relationship)
+        stage_idx = stage_info["stage_index"]
+        
+        # Must be higher relationship stage (index >= 4)
+        if stage_idx >= 4:
+            # 40% chance of trigger
+            if random.random() < 0.40:
+                print(f"[Spontaneous DM] Triggered for {char.name} at stage index {stage_idx}")
+                message_text = await generate_spontaneous_dm(char.name, char.handle, char.bio, char.target_relationship)
+                if message_text and message_text.strip():
+                    dm = DirectMessage(
+                        sender_id=char.id,
+                        receiver_id=user.id,
+                        content=message_text.strip(),
+                        timestamp=datetime.datetime.utcnow(),
+                        game_day=current_day
+                    )
+                    db.add(dm)
+                    char.has_unread = True
+                    has_changes = True
+                    
+    if has_changes:
+        db.commit()
+
+
 @app.post("/api/generate_timeline")
 async def generate_timeline(db: Session = Depends(get_db)):
     """
     Triggers NovelAI to generate new timeline posts individually,
     incorporating bio, tweet history, and spawning 0-3 new AI-generated NPCs.
     """
+    # Set has_batched_posts to True
+    state = crud.get_game_state(db)
+    state.has_batched_posts = True
+    db.commit()
+
     import re
     # Pick a random community (or standard one since we only seed 1 initially)
     communities = crud.get_communities(db)
@@ -882,16 +993,14 @@ async def generate_timeline(db: Session = Depends(get_db)):
                 content=content,
                 community_id=comm.id
             )
-            
-            # Add to character's tweet history in raw single-line format
-            content_clean = content.strip().replace("\n", " ")
-            if npc.tweet_history:
-                npc.tweet_history = f"{npc.tweet_history.strip()}\n{content_clean}\n"
-            else:
-                npc.tweet_history = f"{content_clean}\n"
-            db.commit()
-            
+            # NOTE: Do NOT append generated posts to tweet_history.
+            # tweet_history is the character's original persona seed only.
+            # get_character_posts already merges DB posts + tweet_history,
+            # so writing here would show every generated post twice.
             saved_posts_count += 1
+            
+    # 5. Trigger spontaneous DMs
+    await trigger_spontaneous_dms(db, state.current_day)
             
     return {"status": "success", "posts_generated": saved_posts_count}
 
@@ -909,13 +1018,26 @@ async def trigger_gossip_headline(db: Session = Depends(get_db)):
         Character.is_user == False, 
         Character.handle != "@popcraze"
     ).all()
+
+    # Fetch game state for Fame skill points
+    game_state = crud.get_game_state(db)
+    fame = game_state.fame_pts
     
-    if len(chars) < 2:
-        raise HTTPException(status_code=400, detail="Need at least 2 characters to generate gossip")
+    # Calculate player gossip chance: base 15% + 15% per point of Fame
+    player_chance = min(0.90, 0.15 + fame * 0.15)
+    
+    user = crud.get_user_character(db)
+    
+    if random.random() < player_chance and user:
+        # Player is featured!
+        char_a = user
+        char_b = random.choice(chars)
+    else:
+        # Standard two NPCs
+        if len(chars) < 2:
+            raise HTTPException(status_code=400, detail="Need at least 2 characters to generate gossip")
+        char_a, char_b = random.sample(chars, 2)
         
-    # Select two characters
-    char_a, char_b = random.sample(chars, 2)
-    
     # Generate gossip headline
     headline = await novelai.generate_gossip_headline(
         char_a_name=char_a.name,
@@ -987,15 +1109,22 @@ def reset_activity_log(db: Session = Depends(get_db)):
 @app.delete("/api/posts/{post_id}")
 def delete_timeline_post(post_id: int, db: Session = Depends(get_db)):
     """
-    Deletes a user's post or comment from the database.
+    Deletes a post from the database.
+    The player may delete their own posts OR any NPC post (e.g. via the character profile editor).
     """
     user = crud.get_user_character(db)
     post = db.query(Post).filter(Post.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
-    if post.author_id != user.id:
-        raise HTTPException(status_code=403, detail="You can only delete your own posts")
-    
+
+    # Allow deletion of the player's own posts, or any NPC post.
+    # Prevent deleting other user accounts' posts (future-proofing).
+    post_author = db.query(Character).filter(Character.id == post.author_id).first()
+    is_own_post = (post.author_id == user.id)
+    is_npc_post = post_author and not post_author.is_user
+    if not is_own_post and not is_npc_post:
+        raise HTTPException(status_code=403, detail="Cannot delete this post")
+
     crud.delete_post(db, post_id)
     return {"status": "success"}
 
@@ -1115,19 +1244,35 @@ async def resolve_social_event(event_id: int, payload: EventResolve, db: Session
     if ev.status == "Resolved":
         raise HTTPException(status_code=400, detail="Event already resolved")
         
-    resolution = await novelai.generate_event_resolution(ev.scenario_text, payload.choice)
+    res_data = await novelai.generate_event_resolution(ev.scenario_text, payload.choice)
+    resolution = res_data["text"]
+    impact = res_data["impact"]
     
-    is_positive = any(word in resolution.lower() for word in ["positively", "increased", "strengthened", "improved", "grew"])
-    rel_change = 10 if is_positive else -10
+    if impact == "POSITIVE":
+        rel_change = 10
+    elif impact == "NEGATIVE":
+        rel_change = -10
+    else:
+        rel_change = 0
     
     char_ids = [int(x) for x in ev.involved_character_ids.split(",") if x.strip()]
     primary_char_id = char_ids[0] if char_ids else None
     if primary_char_id:
         crud.increment_relationship_score(db, primary_char_id, rel_change)
         
+    # Fetch game state for skills and counters
+    game_state = crud.get_game_state(db)
+    relevance = game_state.relevance_pts
+    
     crud.resolve_event(db, event_id, payload.choice, resolution)
     
-    xp_gained = random.randint(15, 30)
+    xp_base = random.randint(15, 30)
+    xp_gained = int(xp_base * (1.0 + 0.15 * relevance))
+    
+    # Award XP and log activity
+    crud.gain_xp(db, xp_gained)
+    crud.increment_daily_action_count(db)
+    crud.check_side_quests(db, "Event_Choice", character_id=primary_char_id)
     
     crud.log_activity(
         db=db,
@@ -1144,6 +1289,151 @@ async def resolve_social_event(event_id: int, payload: EventResolve, db: Session
         "relationship_change": rel_change,
         "xp_gained": xp_gained
     }
+
+class AllocateSkillPayload(BaseModel):
+    skill_name: str
+
+@app.get("/api/game/state")
+def get_game_state_endpoint(db: Session = Depends(get_db)):
+    state = crud.get_game_state(db)
+    
+    # Get active side quests
+    quests = db.query(SideQuest).filter(SideQuest.status == "active").all()
+    quests_list = [{
+        "id": q.id,
+        "description": q.description,
+        "reward_xp": q.reward_xp,
+        "associated_character_id": q.associated_character_id,
+        "status": q.status
+    } for q in quests]
+    
+    # Calculate daily XP earned
+    today_xp = sum(log.xp_gained for log in db.query(ActivityLog).filter_by(game_day=state.current_day).all())
+    
+    return {
+        "current_day": state.current_day,
+        "available_skill_points": state.available_skill_points,
+        "overarching_narrative": state.overarching_narrative,
+        "has_batched_posts": state.has_batched_posts,
+        "daily_action_count": state.daily_action_count,
+        "xp": state.xp,
+        "level": state.level,
+        "empathy_pts": state.empathy_pts,
+        "fame_pts": state.fame_pts,
+        "relevance_pts": state.relevance_pts,
+        "quests": quests_list,
+        "today_xp": today_xp
+    }
+
+@app.post("/api/game/allocate_skill")
+def allocate_skill_endpoint(payload: AllocateSkillPayload, db: Session = Depends(get_db)):
+    success = crud.allocate_skill_point(db, payload.skill_name)
+    if not success:
+        raise HTTPException(status_code=400, detail="Cannot allocate skill point. Check available points and skill name.")
+    return {"status": "success", "state": get_game_state_endpoint(db)}
+
+@app.post("/api/game/end_day")
+async def end_day_endpoint(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    state = crud.get_game_state(db)
+    if not state.has_batched_posts:
+        raise HTTPException(status_code=400, detail="You must batch posts before ending the day.")
+        
+    # Check XP earned today
+    today_xp = sum(log.xp_gained for log in db.query(ActivityLog).filter_by(game_day=state.current_day).all())
+    required_xp = 20
+    if today_xp < required_xp:
+        raise HTTPException(status_code=400, detail=f"You need to earn at least {required_xp} XP today to sleep (current: {today_xp}/{required_xp}). Chat with characters or complete side quests!")
+        
+    # Query significant posts and activity log of the day
+    day_posts = db.query(Post).filter_by(game_day=state.current_day).all()
+    day_logs = db.query(ActivityLog).filter_by(game_day=state.current_day).all()
+    
+    # Format them
+    posts_text = "\n".join(f"- {p.author.handle}: {p.content}" for p in day_posts) if day_posts else "No posts."
+    logs_text = "\n".join(f"- {l.narrative_outcome}" for l in day_logs) if day_logs else "No actions."
+    
+    # Generate daily summary using NovelAI
+    daily_summary_text = await novelai.generate_daily_summary(posts_text, logs_text)
+    
+    # Save daily summary
+    db_summary = DailySummary(day=state.current_day, summary_text=daily_summary_text)
+    db.add(db_summary)
+    
+    # Generate updated overarching narrative
+    updated_narrative = await novelai.generate_updated_narrative(state.overarching_narrative, daily_summary_text)
+    state.overarching_narrative = updated_narrative
+    
+    # Collect relationship adjustments
+    rel_adjustments = []
+    rel_changes = {}
+    for log in day_logs:
+        if log.associated_character_id and log.relationship_change != 0:
+            char = db.query(Character).filter_by(id=log.associated_character_id).first()
+            if char:
+                rel_changes[char.name] = rel_changes.get(char.name, 0) + log.relationship_change
+                
+    for char_name, change in rel_changes.items():
+        rel_adjustments.append({"character_name": char_name, "change": change})
+        
+    old_day = state.current_day
+    
+    # Advance day
+    state.current_day += 1
+    state.has_batched_posts = False
+    state.daily_action_count = 0
+    
+    # Reset conversation sessions replies_left
+    sessions = db.query(ConversationSession).all()
+    for s in sessions:
+        s.replies_left = 5
+        
+    # Generate next day's quests
+    crud.generate_new_day_quests(db, state.current_day)
+    
+    # Trigger spontaneous DMs when player wakes up
+    await trigger_spontaneous_dms(db, state.current_day)
+    
+    db.commit()
+    
+    return {
+        "status": "success",
+        "old_day": old_day,
+        "new_day": state.current_day,
+        "daily_summary": daily_summary_text,
+        "xp_gained": today_xp,
+        "relationship_adjustments": rel_adjustments
+    }
+
+@app.post("/api/game/reset")
+def reset_game_loop_endpoint(db: Session = Depends(get_db)):
+    """
+    Resets the narrative loop, clearing summaries, active quests, and setting GameState to default.
+    """
+    crud.clear_posts(db)
+    crud.clear_dms(db)
+    crud.reset_relationship_scores(db)
+    crud.clear_activity_logs(db)
+    
+    db.query(DailySummary).delete()
+    db.query(SideQuest).delete()
+    
+    state = db.query(GameState).filter(GameState.id == 1).first()
+    if state:
+        state.current_day = 1
+        state.available_skill_points = 0
+        state.overarching_narrative = "You started your music fan journey in the local underground scene."
+        state.has_batched_posts = False
+        state.daily_action_count = 0
+        state.xp = 0
+        state.level = 1
+        state.empathy_pts = 0
+        state.fame_pts = 0
+        state.relevance_pts = 0
+        
+    db.commit()
+    crud.generate_new_day_quests(db, 1)
+    
+    return {"status": "success"}
 
 # Mount static files to serve the frontend UI
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
